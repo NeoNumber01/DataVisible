@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataVisible - 数据可视化平台</title>
+    <meta name="description" content="功能强大的数据可视化平台，支持多种图表类型和数据对比分析">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <!-- Chart.js DataLabels Plugin for showing values on charts -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- ECharts GL for 3D charts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2.0.9/dist/echarts-gl.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3v18h18" />
+                    <path d="M18 9l-5 5-4-4-3 3" />
+                </svg>
+                <span class="logo-text">DataVisible</span>
+            </div>
+        </div>
+        <div class="header-center">
+            <h1 class="header-title">数据可视化平台</h1>
+        </div>
+        <div class="header-right">
+            <div class="lang-switch">
+                <button class="lang-btn active" data-lang="zh">中文</button>
+                <button class="lang-btn" data-lang="en">EN</button>
+            </div>
+            <button id="themeToggle" class="theme-toggle" title="切换主题">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <path
+                        d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </button>
+            <button id="exportBtn" class="btn btn-secondary" title="导出">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7,10 12,15 17,10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span class="btn-text">导出</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">图表类型</h3>
+
+                <div class="chart-category">
+                    <button class="category-header active" data-category="basic">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <path d="M3 9h18M9 21V9" />
+                        </svg>
+                        基础图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items active" id="basic-charts">
+                        <button class="chart-btn active" data-chart="bar" data-i18n="bar">
+                            <span class="chart-icon">📊</span> <span class="chart-name">柱状图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="line" data-i18n="line">
+                            <span class="chart-icon">📈</span> <span class="chart-name">折线图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="pie" data-i18n="pie">
+                            <span class="chart-icon">🥧</span> <span class="chart-name">饼图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="doughnut" data-i18n="doughnut">
+                            <span class="chart-icon">🍩</span> <span class="chart-name">环形图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="horizontalBar" data-i18n="horizontalBar">
+                            <span class="chart-icon">↔️</span> <span class="chart-name">水平柱状图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="advanced">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 0 20" />
+                        </svg>
+                        高级图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="advanced-charts">
+                        <button class="chart-btn" data-chart="scatter" data-i18n="scatter">
+                            <span class="chart-icon">⚬</span> <span class="chart-name">散点图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="bubble" data-i18n="bubble">
+                            <span class="chart-icon">🫧</span> <span class="chart-name">气泡图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="radar" data-i18n="radar">
+                            <span class="chart-icon">🕸️</span> <span class="chart-name">雷达图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="area" data-i18n="area">
+                            <span class="chart-icon">📉</span> <span class="chart-name">面积图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="stacked" data-i18n="stacked">
+                            <span class="chart-icon">📚</span> <span class="chart-name">堆叠图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="rose" data-i18n="rose">
+                            <span class="chart-icon">🌹</span> <span class="chart-name">玫瑰图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="mixed" data-i18n="mixed">
+                            <span class="chart-icon">📊📈</span> <span class="chart-name">组合图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="distribution">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="10" rx="2" />
+                            <line x1="12" y1="7" x2="12" y2="17" />
+                        </svg>
+                        分布图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="distribution-charts">
+                        <button class="chart-btn" data-chart="boxplot" data-i18n="boxplot">
+                            <span class="chart-icon">📦</span> <span class="chart-name">箱线图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="heatmap" data-i18n="heatmap">
+                            <span class="chart-icon">🌡️</span> <span class="chart-name">热力图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="polar" data-i18n="polar">
+                            <span class="chart-icon">🎯</span> <span class="chart-name">极坐标图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="calendar" data-i18n="calendar">
+                            <span class="chart-icon">📅</span> <span class="chart-name">日历热力图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="hierarchy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        层级图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="hierarchy-charts">
+                        <button class="chart-btn" data-chart="treemap" data-i18n="treemap">
+                            <span class="chart-icon">🌳</span> <span class="chart-name">树状图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="sunburst" data-i18n="sunburst">
+                            <span class="chart-icon">☀️</span> <span class="chart-name">旭日图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="sankey" data-i18n="sankey">
+                            <span class="chart-icon">🌊</span> <span class="chart-name">桑基图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="funnel" data-i18n="funnel">
+                            <span class="chart-icon">🔻</span> <span class="chart-name">漏斗图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="special">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 6v6l4 2" />
+                        </svg>
+                        特殊图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="special-charts">
+                        <button class="chart-btn" data-chart="gauge" data-i18n="gauge">
+                            <span class="chart-icon">⏱️</span> <span class="chart-name">仪表盘</span>
+                        </button>
+                        <button class="chart-btn" data-chart="wordcloud" data-i18n="wordcloud">
+                            <span class="chart-icon">☁️</span> <span class="chart-name">词云图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="table" data-i18n="table">
+                            <span class="chart-icon">📋</span> <span class="chart-name">数据表格</span>
+                        </button>
+                        <button class="chart-btn" data-chart="waterfall" data-i18n="waterfall">
+                            <span class="chart-icon">💧</span> <span class="chart-name">瀑布图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="timeline" data-i18n="timeline">
+                            <span class="chart-icon">⏰</span> <span class="chart-name">时间轴图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="graph" data-i18n="graph">
+                            <span class="chart-icon">🔗</span> <span class="chart-name">关系图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="parallel" data-i18n="parallel">
+                            <span class="chart-icon">≣</span> <span class="chart-name">平行坐标</span>
+                        </button>
+                        <button class="chart-btn" data-chart="themeriver" data-i18n="themeriver">
+                            <span class="chart-icon">🌊</span> <span class="chart-name">河流图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="pictorial" data-i18n="pictorial">
+                            <span class="chart-icon">🟩</span> <span class="chart-name">象形柱图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="liquid" data-i18n="liquid">
+                            <span class="chart-icon">💦</span> <span class="chart-name">水球图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="financial">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20V10" />
+                            <path d="M18 20V4" />
+                            <path d="M6 20v-4" />
+                        </svg>
+                        金融图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="financial-charts">
+                        <button class="chart-btn" data-chart="candlestick" data-i18n="candlestick">
+                            <span class="chart-icon">📈</span> <span class="chart-name">K线图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="effectScatter" data-i18n="effectScatter">
+                            <span class="chart-icon">✨</span> <span class="chart-name">涟漪散点</span>
+                        </button>
+                        <button class="chart-btn" data-chart="bullet" data-i18n="bullet">
+                            <span class="chart-icon">🎯</span> <span class="chart-name">子弹图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="stepLine" data-i18n="stepLine">
+                            <span class="chart-icon">📶</span> <span class="chart-name">步骤图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="histogram" data-i18n="histogram">
+                            <span class="chart-icon">📊</span> <span class="chart-name">直方图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="tree" data-i18n="tree">
+                            <span class="chart-icon">🌲</span> <span class="chart-name">树图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="progress" data-i18n="progress">
+                            <span class="chart-icon">▶️</span> <span class="chart-name">进度条</span>
+                        </button>
+                        <button class="chart-btn" data-chart="metric" data-i18n="metric">
+                            <span class="chart-icon">🔢</span> <span class="chart-name">指标卡</span>
+                        </button>
+                        <button class="chart-btn" data-chart="sparkline" data-i18n="sparkline">
+                            <span class="chart-icon">〰️</span> <span class="chart-name">迷你图</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-category">
+                    <button class="category-header" data-category="3d">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 3l9 4.5v9L12 21l-9-4.5v-9L12 3z" />
+                            <path d="M12 12l9-4.5" />
+                            <path d="M12 12v9" />
+                            <path d="M12 12L3 7.5" />
+                        </svg>
+                        3D图表
+                        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6,9 12,15 18,9" />
+                        </svg>
+                    </button>
+                    <div class="category-items" id="3d-charts">
+                        <button class="chart-btn" data-chart="bar3d" data-i18n="bar3d">
+                            <span class="chart-icon">📊</span> <span class="chart-name">3D柱状图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="scatter3d" data-i18n="scatter3d">
+                            <span class="chart-icon">⚪</span> <span class="chart-name">3D散点图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="surface3d" data-i18n="surface3d">
+                            <span class="chart-icon">🏔️</span> <span class="chart-name">3D曲面</span>
+                        </button>
+                        <button class="chart-btn" data-chart="line3d" data-i18n="line3d">
+                            <span class="chart-icon">📈</span> <span class="chart-name">3D折线图</span>
+                        </button>
+                        <button class="chart-btn" data-chart="globe" data-i18n="globe">
+                            <span class="chart-icon">🌍</span> <span class="chart-name">地球仪</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">布局模式</h3>
+                <div class="layout-options">
+                    <button class="layout-btn active" data-layout="1" title="单图">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                        </svg>
+                    </button>
+                    <button class="layout-btn" data-layout="2" title="双图">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="8" height="18" rx="1" />
+                            <rect x="13" y="3" width="8" height="18" rx="1" />
+                        </svg>
+                    </button>
+                    <button class="layout-btn" data-layout="4" title="四图">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="8" height="8" rx="1" />
+                            <rect x="13" y="3" width="8" height="8" rx="1" />
+                            <rect x="3" y="13" width="8" height="8" rx="1" />
+                            <rect x="13" y="13" width="8" height="8" rx="1" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chart Area -->
+        <main class="chart-area">
+            <div class="chart-grid layout-1" id="chartGrid">
+                <div class="chart-container" id="chart-1">
+                    <div class="chart-header">
+                        <select class="chart-type-select" data-slot="1">
+                            <option value="bar">柱状图</option>
+                            <option value="line">折线图</option>
+                            <option value="pie">饼图</option>
+                            <option value="doughnut">环形图</option>
+                            <option value="scatter">散点图</option>
+                            <option value="bubble">气泡图</option>
+                            <option value="radar">雷达图</option>
+                            <option value="area">面积图</option>
+                            <option value="stacked">堆叠图</option>
+                            <option value="polar">极坐标图</option>
+                            <option value="boxplot">箱线图</option>
+                            <option value="heatmap">热力图</option>
+                            <option value="treemap">树状图</option>
+                            <option value="sunburst">旭日图</option>
+                            <option value="sankey">桑基图</option>
+                            <option value="funnel">漏斗图</option>
+                            <option value="gauge">仪表盘</option>
+                            <option value="wordcloud">词云图</option>
+                            <option value="table">数据表格</option>
+                        </select>
+                        <button class="chart-action-btn color-picker-btn" data-action="colorpicker" title="颜色">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <path
+                                    d="M12 2a10 10 0 0 0 0 20 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h1a2 2 0 0 0 2-2 10 10 0 0 0-7-13z" />
+                                <circle cx="8" cy="9" r="1.5" fill="currentColor" />
+                                <circle cx="12" cy="7" r="1.5" fill="currentColor" />
+                                <circle cx="16" cy="9" r="1.5" fill="currentColor" />
+                                <circle cx="9" cy="13" r="1.5" fill="currentColor" />
+                            </svg>
+                        </button>
+                        <button class="chart-action-btn settings-btn" data-action="settings" title="图表设置">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
+                        </button>
+                        <button class="chart-action-btn toggle-values-btn" data-action="togglevalues" title="显示/隐藏数值">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M7 20h10" />
+                                <path d="M10 20c5.5-2.5 6.5-9 3.5-13" />
+                                <path d="M6.5 9c0 1.5 1 3 2.5 3" />
+                                <path d="M14 6.5c0-.8.5-2 1.5-2" />
+                                <text x="12" y="15" font-size="6" text-anchor="middle" fill="currentColor">123</text>
+                            </svg>
+                        </button>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" data-action="fullscreen" title="全屏">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path
+                                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                                </svg>
+                            </button>
+                            <button class="chart-action-btn" data-action="download" title="下载图表">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7,10 12,15 17,10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="canvas-1"></canvas>
+                        <div id="echart-1" class="echart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Data Panel -->
+    <div class="data-panel">
+        <div class="data-panel-header">
+            <h2 class="data-panel-title">数据输入</h2>
+            <div class="data-panel-tabs">
+                <button class="tab-btn active" data-tab="table">表格输入</button>
+                <button class="tab-btn" data-tab="json">JSON 输入</button>
+                <button class="tab-btn" data-tab="csv">CSV 输入</button>
+                <button class="tab-btn" data-tab="file">文件导入</button>
+            </div>
+            <button id="togglePanel" class="toggle-panel-btn" title="收起/展开">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18,15 12,9 6,15" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="data-panel-content">
+            <!-- Table Input -->
+            <div class="tab-content active" id="tab-table">
+                <div class="table-controls">
+                    <button class="btn btn-sm" id="addRow">+ 添加行</button>
+                    <button class="btn btn-sm" id="addCol">+ 添加列</button>
+                    <button class="btn btn-sm btn-danger" id="clearTable">清空</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table" id="dataTable">
+                        <thead>
+                            <tr>
+                                <th><input type="text" value="类别" class="header-input"></th>
+                                <th><input type="text" value="数值1" class="header-input"></th>
+                                <th><input type="text" value="数值2" class="header-input"></th>
+                                <th class="action-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><input type="text" value="A"></td>
+                                <td><input type="number" value="30"></td>
+                                <td><input type="number" value="45"></td>
+                                <td class="action-col"><button class="delete-row-btn">×</button></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" value="B"></td>
+                                <td><input type="number" value="50"></td>
+                                <td><input type="number" value="35"></td>
+                                <td class="action-col"><button class="delete-row-btn">×</button></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" value="C"></td>
+                                <td><input type="number" value="40"></td>
+                                <td><input type="number" value="60"></td>
+                                <td class="action-col"><button class="delete-row-btn">×</button></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" value="D"></td>
+                                <td><input type="number" value="70"></td>
+                                <td><input type="number" value="25"></td>
+                                <td class="action-col"><button class="delete-row-btn">×</button></td>
+                            </tr>
+                            <tr>
+                                <td><input type="text" value="E"></td>
+                                <td><input type="number" value="25"></td>
+                                <td><input type="number" value="55"></td>
+                                <td class="action-col"><button class="delete-row-btn">×</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- JSON Input -->
+            <div class="tab-content" id="tab-json">
+                <textarea class="code-input" id="jsonInput" placeholder='输入 JSON 格式数据，例如：
+{
+  "labels": ["A", "B", "C", "D", "E"],
+  "datasets": [
+    {
+      "label": "数据集1",
+      "data": [30, 50, 40, 70, 25]
+    },
+    {
+      "label": "数据集2", 
+      "data": [45, 35, 60, 25, 55]
+    }
+  ]
+}'></textarea>
+                <button class="btn btn-primary" id="parseJson">解析 JSON</button>
+            </div>
+
+            <!-- CSV Input -->
+            <div class="tab-content" id="tab-csv">
+                <textarea class="code-input" id="csvInput" placeholder="输入 CSV 格式数据，例如：
+类别,数值1,数值2
+A,30,45
+B,50,35
+C,40,60
+D,70,25
+E,25,55"></textarea>
+                <button class="btn btn-primary" id="parseCsv">解析 CSV</button>
+            </div>
+
+            <!-- File Import -->
+            <div class="tab-content" id="tab-file">
+                <div class="file-drop-zone" id="fileDropZone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17,8 12,3 7,8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p>拖拽文件到这里，或点击选择文件</p>
+                    <span class="file-types">支持 CSV、JSON、Excel (.xlsx)、TSV、XML、YAML、TXT 文件</span>
+                    <input type="file" id="fileInput" accept=".csv,.json,.xlsx,.xls,.tsv,.xml,.yaml,.yml,.txt" hidden>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-panel-footer">
+            <button class="btn btn-primary" id="applyData">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20,6 9,17 4,12" />
+                </svg>
+                <span class="btn-text">应用数据</span>
+            </button>
+            <button class="btn btn-secondary" id="resetData">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                </svg>
+                <span class="btn-text">重置</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="js/dataManager.js"></script>
+    <script src="js/charts/basicCharts.js"></script>
+    <script src="js/charts/advancedCharts.js"></script>
+    <script src="js/charts/comparisonCharts.js"></script>
+    <script src="js/charts/specialCharts.js"></script>
+    <script src="js/charts/charts3D.js"></script>
+    <script src="js/charts/financialCharts.js"></script>
+    <script src="js/chartColorsConfig.js"></script>
+    <script src="js/chartOptions.js"></script>
+    <script src="js/chartRenderer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
