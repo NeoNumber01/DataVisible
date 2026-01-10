@@ -9,6 +9,15 @@ const ChartOptions = {
      * Each option has: key, label, type, default, min, max, step (for range)
      */
     definitions: {
+        // Axis Options (Shared)
+        axisOptions: [
+            { key: 'yAxisMin', label: 'yAxisMin', labelZh: 'Y轴最小值', type: 'number', default: null, step: 1 },
+            { key: 'yAxisMax', label: 'yAxisMax', labelZh: 'Y轴最大值', type: 'number', default: null, step: 1 },
+            { key: 'yAxisStep', label: 'yAxisStep', labelZh: 'Y轴刻度步长', type: 'number', default: null, step: 1 },
+            { key: 'xAxisMin', label: 'xAxisMin', labelZh: 'X轴最小值', type: 'number', default: null, step: 1 },
+            { key: 'xAxisMax', label: 'xAxisMax', labelZh: 'X轴最大值', type: 'number', default: null, step: 1 }
+        ],
+
         // Line Chart Options
         line: [
             { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0, min: 0, max: 1, step: 0.1 },
@@ -24,14 +33,17 @@ const ChartOptions = {
             { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 6, min: 0, max: 20, step: 1 },
             { key: 'barPercentage', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 0.7, min: 0.1, max: 1, step: 0.1 },
             { key: 'categoryPercentage', label: 'barSpacing', labelZh: '柱间距', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.1 },
-            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 5, step: 1 }
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 5, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
         ],
 
         // Horizontal Bar Chart Options
         horizontalBar: [
             { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 6, min: 0, max: 20, step: 1 },
             { key: 'barPercentage', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 0.7, min: 0.1, max: 1, step: 0.1 },
-            { key: 'categoryPercentage', label: 'barSpacing', labelZh: '柱间距', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.1 }
+            { key: 'categoryPercentage', label: 'barSpacing', labelZh: '柱间距', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 5, step: 1 },
+            { key: 'layoutPadding', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
         ],
 
         // Pie Chart Options
@@ -80,7 +92,8 @@ const ChartOptions = {
         // Stacked Chart Options
         stacked: [
             { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 4, min: 0, max: 15, step: 1 },
-            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 4, step: 1 }
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 4, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
         ],
 
         // Polar Area Chart Options
@@ -99,7 +112,8 @@ const ChartOptions = {
         mixed: [
             { key: 'barBorderRadius', label: 'barRadius', labelZh: '柱状圆角', type: 'range', default: 6, min: 0, max: 15, step: 1 },
             { key: 'lineTension', label: 'lineTension', labelZh: '折线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
-            { key: 'lineWidth', label: 'lineWidth', labelZh: '折线粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 }
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '折线粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
         ],
 
         // Heatmap Options (ECharts)
@@ -310,6 +324,31 @@ const ChartOptions = {
             { key: 'nodeWidth', label: 'nodeWidth', labelZh: '节点宽度', type: 'range', default: 20, min: 10, max: 40, step: 2 }
         ],
 
+        // Map Options (ECharts)
+        map: [
+            { key: 'symbolSize', label: 'symbolSize', labelZh: '散点大小', type: 'range', default: 50, min: 20, max: 100, step: 5 }
+        ],
+
+        // Metric Cards Options
+        metric: [
+            { key: 'cardMinWidth', label: 'cardMinWidth', labelZh: '卡片最小宽度', type: 'range', default: 150, min: 100, max: 250, step: 10 },
+            { key: 'valueFontSize', label: 'valueFontSize', labelZh: '数值字号', type: 'range', default: 32, min: 20, max: 60, step: 2 },
+            { key: 'labelFontSize', label: 'labelFontSize', labelZh: '标签字号', type: 'range', default: 14, min: 10, max: 24, step: 1 }
+        ],
+
+        // Sparkline Options
+        sparkline: [
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'areaOpacity', label: 'areaOpacity', labelZh: '填充透明度', type: 'range', default: 0.2, min: 0, max: 1, step: 0.1 },
+            { key: 'smooth', label: 'smooth', labelZh: '曲线平滑', type: 'boolean', default: true }
+        ],
+
+        // Table Options
+        table: [
+            { key: 'fontSize', label: 'fontSize', labelZh: '字体大小', type: 'range', default: 14, min: 10, max: 20, step: 1 },
+            { key: 'cellPadding', label: 'cellPadding', labelZh: '单元格内边距', type: 'range', default: 10, min: 5, max: 20, step: 1 }
+        ],
+
         // Default/fallback options (for charts without specific options)
         default: [
             { key: 'animationDuration', label: 'animationSpeed', labelZh: '动画时长(ms)', type: 'range', default: 800, min: 0, max: 2000, step: 100 }
@@ -317,10 +356,41 @@ const ChartOptions = {
     },
 
     /**
+     * Data label style options - 数据标签字体样式选项
+     * These apply to the values displayed on charts (e.g., bar tops, pie slices)
+     */
+    dataLabelOptions: [
+        { key: 'labelFontSize', label: 'labelFontSize', labelZh: '数据标签字号', type: 'range', default: 12, min: 8, max: 24, step: 1 },
+        {
+            key: 'labelFontWeight', label: 'labelFontWeight', labelZh: '数据标签粗细', type: 'select', default: 'bold', options: [
+                { value: 'normal', label: '正常', labelEn: 'Normal' },
+                { value: 'bold', label: '粗体', labelEn: 'Bold' },
+                { value: 'lighter', label: '细体', labelEn: 'Lighter' },
+                { value: '500', label: '中等', labelEn: 'Medium' },
+                { value: '600', label: '半粗', labelEn: 'Semi-bold' },
+                { value: '700', label: '加粗', labelEn: 'Bold 700' },
+                { value: '800', label: '特粗', labelEn: 'Extra Bold' }
+            ]
+        },
+        { key: 'labelColor', label: 'labelColor', labelZh: '数据标签颜色', type: 'color', default: '#333333' }
+    ],
+
+    /**
      * Get options definition for a chart type
      */
     getDefinition(chartType) {
-        return this.definitions[chartType] || this.definitions.default;
+        const baseOptions = this.definitions[chartType] || this.definitions.default;
+
+        // Add axis options for Cartesian charts
+        const cartesianCharts = ['line', 'bar', 'horizontalBar', 'scatter', 'bubble', 'area', 'stacked', 'mixed'];
+        let extendedOptions = [...baseOptions];
+
+        if (cartesianCharts.includes(chartType)) {
+            extendedOptions = [...extendedOptions, ...this.definitions.axisOptions];
+        }
+
+        // Add data label options for all chart types
+        return [...extendedOptions, ...this.dataLabelOptions];
     },
 
     /**
@@ -392,6 +462,37 @@ const ChartOptions = {
                         </div>
                     </div>
                 `;
+            } else if (opt.type === 'color') {
+                html += `
+                    <div class="option-item">
+                        <label>${label}</label>
+                        <div class="option-control color-control">
+                            <input type="color" 
+                                   data-key="${opt.key}" 
+                                   value="${value}">
+                            <input type="text" 
+                                   class="color-text" 
+                                   data-key="${opt.key}" 
+                                   value="${value}" 
+                                   pattern="^#[0-9A-Fa-f]{6}$"
+                                   title="${lang === 'zh' ? '请输入十六进制颜色值,例如 #333333' : 'Please enter hex color code, e.g., #333333'}">
+                        </div>
+                    </div>
+                `;
+            } else if (opt.type === 'number') {
+                html += `
+                    <div class="option-item">
+                        <label>${label}</label>
+                        <div class="option-control">
+                            <input type="number" 
+                                   class="number-input"
+                                   data-key="${opt.key}" 
+                                   step="${opt.step || 1}" 
+                                   placeholder="Auto"
+                                   value="${value !== null ? value : ''}">
+                        </div>
+                    </div>
+                `;
             }
         });
 
@@ -417,6 +518,17 @@ const ChartOptions = {
         // Select inputs
         panelElement.querySelectorAll('select').forEach(select => {
             values[select.dataset.key] = select.value;
+        });
+
+        // Color inputs
+        panelElement.querySelectorAll('input[type="color"]').forEach(input => {
+            values[input.dataset.key] = input.value;
+        });
+
+        // Number inputs
+        panelElement.querySelectorAll('input[type="number"]').forEach(input => {
+            const val = input.value.trim();
+            values[input.dataset.key] = val === '' ? null : parseFloat(val);
         });
 
         return values;

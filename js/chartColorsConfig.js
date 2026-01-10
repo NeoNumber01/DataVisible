@@ -267,37 +267,49 @@ const ChartColorsConfig = {
                 title: '按类别着色',
                 titleEn: 'Color by Category',
                 description: '每个数据类别（行标签）使用一种颜色',
-                tip: '适合突出不同类别间的对比'
+                descriptionEn: 'One color per data category (row label)',
+                tip: '适合突出不同类别间的对比',
+                tipEn: 'Good for highlighting contrast between categories'
             },
             [this.colorModes.SERIES]: {
                 title: '按系列着色',
                 titleEn: 'Color by Series',
                 description: '每个数据系列（列）使用一种颜色',
-                tip: '适合展示多个系列的变化趋势'
+                descriptionEn: 'One color per data series (column)',
+                tip: '适合展示多个系列的变化趋势',
+                tipEn: 'Good for showing trends across multiple series'
             },
             [this.colorModes.DUAL]: {
                 title: '双色对比',
                 titleEn: 'Dual Colors',
                 description: '使用两种对比色表示正负/涨跌',
-                tip: '选择容易区分的对比色'
+                descriptionEn: 'Two contrasting colors for positive/negative',
+                tip: '选择容易区分的对比色',
+                tipEn: 'Choose easily distinguishable contrasting colors'
             },
             [this.colorModes.GRADIENT]: {
                 title: '渐变映射',
                 titleEn: 'Gradient Mapping',
                 description: '使用连续渐变色表示数值大小',
-                tip: '选择从浅到深的渐变色阶'
+                descriptionEn: 'Continuous gradient for value magnitude',
+                tip: '选择从浅到深的渐变色阶',
+                tipEn: 'Choose a light-to-dark gradient scale'
             },
             [this.colorModes.RELATION]: {
                 title: '关系型着色',
                 titleEn: 'Relation Colors',
                 description: '使用不同颜色区分节点类别',
-                tip: '选择3-5种易于区分的颜色'
+                descriptionEn: 'Different colors for node categories',
+                tip: '选择3-5种易于区分的颜色',
+                tipEn: 'Select 3-5 distinct colors'
             },
             [this.colorModes.SINGLE]: {
                 title: '单色强调',
                 titleEn: 'Single Emphasis',
                 description: '使用单一主题色突出重点',
-                tip: '选择与整体设计风格一致的颜色'
+                descriptionEn: 'Single theme color for emphasis',
+                tip: '选择与整体设计风格一致的颜色',
+                tipEn: 'Choose a color consistent with overall design'
             }
         };
         return descriptions[mode] || descriptions[this.colorModes.SERIES];
@@ -309,37 +321,37 @@ const ChartColorsConfig = {
     getChartColorSuggestion(chartType) {
         const suggestions = {
             // 饼图/环形图 - 需要高对比度
-            pie: { preset: 'rainbow', tip: '建议使用高对比度配色，便于区分每个扇区' },
-            doughnut: { preset: 'rainbow', tip: '同饼图，注意中心空白区域的视觉平衡' },
-            rose: { preset: 'elegant', tip: '玫瑰图建议使用渐变色系，突出面积差异' },
+            pie: { preset: 'rainbow', tip: '建议使用高对比度配色，便于区分每个扇区', tipEn: 'High contrast recommended to distinguish sectors' },
+            doughnut: { preset: 'rainbow', tip: '同饼图，注意中心空白区域的视觉平衡', tipEn: 'Same as pie, check visual balance of center' },
+            rose: { preset: 'elegant', tip: '玫瑰图建议使用渐变色系，突出面积差异', tipEn: 'Gradient recommended to highlight area differences' },
 
             // 柱状图/折线图 - 系列区分
-            bar: { preset: 'analytics', tip: '多系列时建议使用高对比度配色' },
-            line: { preset: 'default', tip: '折线图注意颜色与背景的对比度' },
-            area: { preset: 'ocean', tip: '面积图建议使用半透明颜色避免遮挡' },
+            bar: { preset: 'analytics', tip: '多系列时建议使用高对比度配色', tipEn: 'High contrast recommended for multiple series' },
+            line: { preset: 'default', tip: '折线图注意颜色与背景的对比度', tipEn: 'Check contrast between lines and background' },
+            area: { preset: 'ocean', tip: '面积图建议使用半透明颜色避免遮挡', tipEn: 'Semi-transparent colors recommended to avoid occlusion' },
 
             // 金融图表 - 涨跌色
-            candlestick: { preset: 'redGreen', tip: 'K线图遵循当地市场惯例的涨跌色' },
-            waterfall: { preset: 'greenRed', tip: '瀑布图用绿色表示增加，红色表示减少' },
+            candlestick: { preset: 'redGreen', tip: 'K线图遵循当地市场惯例的涨跌色', tipEn: 'Follow local market conventions for up/down colors' },
+            waterfall: { preset: 'greenRed', tip: '瀑布图用绿色表示增加，红色表示减少', tipEn: 'Green for increase, red for decrease' },
 
             // 热力图 - 渐变色
-            heatmap: { preset: 'coolWarm', tip: '热力图使用冷-暖渐变直观显示数值' },
-            calendar: { preset: 'greenScale', tip: '日历热力图常用单色渐变' },
+            heatmap: { preset: 'coolWarm', tip: '热力图使用冷-暖渐变直观显示数值', tipEn: 'Cool-warm gradient intuitively shows values' },
+            calendar: { preset: 'greenScale', tip: '日历热力图常用单色渐变', tipEn: 'Single color gradient common for calendar heatmaps' },
 
             // 3D图表
-            bar3d: { preset: 'viridis', tip: '3D图表建议使用鲜明的渐变色' },
-            scatter3d: { preset: 'analytics', tip: '3D散点图需要高对比度区分不同系列' },
+            bar3d: { preset: 'viridis', tip: '3D图表建议使用鲜明的渐变色', tipEn: 'Vibrant gradients recommended for 3D charts' },
+            scatter3d: { preset: 'analytics', tip: '3D散点图需要高对比度区分不同系列', tipEn: 'High contrast needed to distinguish series in 3D' },
 
             // 关系图
-            sankey: { preset: 'rainbow', tip: '桑基图使用渐变流动色效果最佳' },
-            graph: { preset: 'analytics', tip: '网络图使用3-5种类别色即可' },
+            sankey: { preset: 'rainbow', tip: '桑基图使用渐变流动色效果最佳', tipEn: 'Gradient flow colors work best for Sankey' },
+            graph: { preset: 'analytics', tip: '网络图使用3-5种类别色即可', tipEn: '3-5 category colors are sufficient for network graphs' },
 
             // 仪表盘类
-            gauge: { preset: 'default', tip: '仪表盘通常使用单一主题色' },
-            progress: { preset: 'rainbow', tip: '进度条每项使用不同颜色便于区分' }
+            gauge: { preset: 'default', tip: '仪表盘通常使用单一主题色', tipEn: 'Gauge usually uses a single theme color' },
+            progress: { preset: 'rainbow', tip: '进度条每项使用不同颜色便于区分', tipEn: 'Different colors for each item to distinguish' }
         };
 
-        return suggestions[chartType] || { preset: 'default', tip: '使用默认配色方案' };
+        return suggestions[chartType] || { preset: 'default', tip: '使用默认配色方案', tipEn: 'Use default color scheme' };
     }
 };
 

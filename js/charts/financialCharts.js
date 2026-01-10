@@ -15,10 +15,30 @@ const FinancialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const maPeriod1 = options.maPeriod1 || 5;
         const maPeriod2 = options.maPeriod2 || 10;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || 'inherit'; // Inherit from item color by default for K-line
 
         // Dual color support: positive (up), negative (down)
-        const upColor = customColors && customColors[0] ? customColors[0] : '#ef4444';
-        const downColor = customColors && customColors[1] ? customColors[1] : '#22c55e';
+        // Use ChartColorsConfig for consistent dual color strategy
+        let dualColors = { positive: '#ef4444', negative: '#22c55e' }; // Default Red/Green
+
+        if (typeof ChartColorsConfig !== 'undefined') {
+            // If getRecommendedColors suggests a dual palette, use it
+            const rec = ChartColorsConfig.getRecommendedColors('candlestick', 2);
+            if (rec && rec.length >= 2) {
+                // Assuming the config returns [positive, negative] for candlestick
+                dualColors = { positive: rec[0], negative: rec[1] };
+            } else if (ChartColorsConfig.dualColorPresets && ChartColorsConfig.dualColorPresets.redGreen) {
+                dualColors = ChartColorsConfig.dualColorPresets.redGreen;
+            }
+        }
+
+        const upColor = customColors && customColors[0] ? customColors[0] : dualColors.positive;
+        const downColor = customColors && customColors[1] ? customColors[1] : dualColors.negative;
 
         // Convert data to OHLC format (Open, Close, Low, High)
         // If standard format, simulate OHLC from values
@@ -29,10 +49,26 @@ const FinancialCharts = {
             // Generate simulated OHLC from single values
             const values = data.datasets[0]?.data || [];
             ohlcData = values.map((val, i) => {
-                const open = val * (0.95 + Math.random() * 0.1);
+                // Determine trend based on previous value to make it look more realistic
+                const prevVal = i > 0 ? values[i - 1] : val;
+
+                // Randomize open price more significantly (+/- 5-15% variance)
+                // Use a deterministic-like random to keep it consistent on re-renders if possible, 
+                // but Math.random() is fine for now.
+                // We ensure open is at least 3% different from close (val) to show a body
+                let direction = Math.random() > 0.5 ? 1 : -1;
+                let variance = 0.03 + Math.random() * 0.12; // 3% to 15%
+
+                const open = val * (1 + direction * variance);
                 const close = val;
-                const low = Math.min(open, close) * (0.95 + Math.random() * 0.05);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.05);
+
+                // Ensure High/Low envelop the body
+                const bodyMin = Math.min(open, close);
+                const bodyMax = Math.max(open, close);
+
+                const low = bodyMin * (0.92 + Math.random() * 0.05); // 3-8% below body min
+                const high = bodyMax * (1.03 + Math.random() * 0.05); // 3-8% above body max
+
                 return [open, close, low, high];
             });
         }
@@ -61,13 +97,17 @@ const FinancialCharts = {
             yAxis: {
                 scale: true,
                 axisLine: { lineStyle: { color: '#8392A5' } },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
             dataZoom: [
                 {
                     type: 'inside',
                     start: 50,
-                    end: 100
+                    end: 100,
+                    zoomOnMouseWheel: false
                 },
                 {
                     show: true,
@@ -82,6 +122,14 @@ const FinancialCharts = {
                     name: 'K线',
                     type: 'candlestick',
                     data: ohlcData,
+                    label: {
+                        show: showValues,
+                        position: 'top',
+                        formatter: (params) => params.value ? params.value[1] : '',
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    },
                     itemStyle: {
                         color: upColor,      // 涨
                         color0: downColor,   // 跌
@@ -146,8 +194,19 @@ const FinancialCharts = {
         const rippleScale = options.rippleScale || 3;
         const symbolSize = options.symbolSize || 20;
         const rippleType = options.rippleType || 'stroke';
+        const showValues = options.showValues !== undefined ? options.showValues : true;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
 
         const scatterData = data.labels.map((label, i) => ({
             name: label,
@@ -172,8 +231,25 @@ const FinancialCharts = {
             yAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: [{
                 type: 'effectScatter',
                 data: scatterData,
@@ -182,9 +258,12 @@ const FinancialCharts = {
                     scale: rippleScale
                 },
                 label: {
-                    show: true,
+                    show: showValues,
                     formatter: '{b}',
-                    position: 'top'
+                    position: 'top',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 },
                 emphasis: {
                     scale: true
@@ -207,7 +286,19 @@ const FinancialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const barWidth = options.barWidth || 15;
         const targetWidth = options.targetWidth || 30;
-        const colors = customColors || BasicCharts.getColorPalette(2);
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, 2);
+        } else {
+            colors = BasicCharts.getColorPalette(2);
+        }
         const dataset = data.datasets[0] || { data: [] };
         const targetData = data.datasets[1]?.data || dataset.data.map(v => v * 1.2);
 
@@ -230,7 +321,10 @@ const FinancialCharts = {
             xAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined // Map yAxisStep to value axis (which is x here)
             },
             yAxis: {
                 type: 'category',
@@ -238,6 +332,20 @@ const FinancialCharts = {
                 axisLine: { show: false },
                 axisTick: { show: false }
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: [
                 {
                     name: '目标值',
@@ -259,9 +367,12 @@ const FinancialCharts = {
                         color: colors[0]
                     },
                     label: {
-                        show: true,
+                        show: showValues,
                         position: 'right',
-                        formatter: '{c}'
+                        formatter: '{c}',
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
                     }
                 }
             ]
@@ -283,8 +394,19 @@ const FinancialCharts = {
         const lineWidth = options.lineWidth || 3;
         const areaOpacity = options.areaOpacity !== undefined ? options.areaOpacity : 0.1;
         const step = options.step || 'middle';
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         const option = {
             tooltip: {
@@ -309,8 +431,25 @@ const FinancialCharts = {
             yAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: data.datasets.map((ds, i) => ({
                 name: ds.label || `Series ${i + 1}`,
                 type: 'line',
@@ -318,7 +457,15 @@ const FinancialCharts = {
                 data: ds.data,
                 lineStyle: { width: lineWidth, color: colors[i] },
                 itemStyle: { color: colors[i] },
-                areaStyle: { opacity: areaOpacity }
+                areaStyle: { opacity: areaOpacity },
+                label: {
+                    show: showValues,
+                    position: 'top',
+                    formatter: '{c}',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
+                }
             }))
         };
 
@@ -333,10 +480,32 @@ const FinancialCharts = {
     createHistogramChart(container, data, options = {}) {
         const chart = echarts.init(container);
 
+        // Parse options - support both array (colors) and object format
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const binCount = options.binCount || 10;
+        const showValues = options.showValues !== undefined ? options.showValues : (options.showLabel !== undefined ? options.showLabel : false);
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
+        // Custom gradient colors
+        let color1, color2;
+        if (customColors && customColors.length >= 2) {
+            color1 = customColors[0];
+            color2 = customColors[1];
+        } else if (customColors && customColors.length === 1) {
+            color1 = customColors[0];
+            color2 = BasicCharts.hexToRgba(color1, 0.6);
+        } else {
+            color1 = '#6366f1';
+            color2 = '#8b5cf6';
+        }
+
         const allValues = data.datasets.flatMap(ds => ds.data);
         const min = Math.min(...allValues);
         const max = Math.max(...allValues);
-        const binCount = 10;
         const binSize = (max - min) / binCount;
 
         // Calculate histogram bins
@@ -378,19 +547,43 @@ const FinancialCharts = {
                 type: 'value',
                 name: '频数',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: [{
                 type: 'bar',
                 data: bins,
                 barWidth: '90%',
+                label: {
+                    show: showValues,
+                    position: 'top',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
+                },
                 itemStyle: {
                     color: {
                         type: 'linear',
                         x: 0, y: 0, x2: 0, y2: 1,
                         colorStops: [
-                            { offset: 0, color: '#6366f1' },
-                            { offset: 1, color: '#8b5cf6' }
+                            { offset: 0, color: color1 },
+                            { offset: 1, color: color2 }
                         ]
                     }
                 }
@@ -408,15 +601,27 @@ const FinancialCharts = {
     createTreeChart(container, data, options = {}) {
         const chart = echarts.init(container);
 
-        // Parse options
+        // Parse options - support both array (colors) and object format
+        const customColors = Array.isArray(options) ? options : options?.customColors;
         const symbolSize = options.symbolSize || 10;
         const orient = options.orient || 'LR';
         const expandAndCollapse = options.expandAndCollapse !== undefined ? options.expandAndCollapse : true;
+        const lineWidth = options.lineWidth || 1;
+        const labelFontSize = options.labelFontSize || 12;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Get color palette
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
 
         // Convert to tree format
         let treeData;
         if (data.children) {
-            treeData = data;
+            treeData = JSON.parse(JSON.stringify(data)); // Deep copy to avoid mutating original
         } else {
             // Create from standard format
             treeData = {
@@ -431,6 +636,36 @@ const FinancialCharts = {
                 }))
             };
         }
+
+        // Helper to recursively apply colors
+        // Assign distinct colors to first-level children, then propagate down
+        const applyColors = (node, color, level = 0, childIndex = 0) => {
+            // Root node usually keeps a neutral or specific color, or inherits the first one
+            // Level 0 = Root
+            // Level 1 = Main Categories (these get the palette colors)
+
+            let myColor = color;
+
+            if (level === 0) {
+                myColor = colors[0]; // Root color
+            } else if (level === 1) {
+                myColor = colors[childIndex % colors.length];
+            }
+            // Level > 1 inherits myColor from parent (which validly passed down)
+
+            if (!node.itemStyle) node.itemStyle = {};
+            node.itemStyle.color = myColor;
+            node.itemStyle.borderColor = myColor;
+
+            if (node.children) {
+                node.children.forEach((child, i) => {
+                    applyColors(child, myColor, level + 1, i);
+                });
+            }
+        };
+
+        // Apply colors to the tree
+        applyColors(treeData, colors[0]);
 
         const option = {
             tooltip: {
@@ -449,13 +684,15 @@ const FinancialCharts = {
                 symbolSize: symbolSize,
                 orient: orient,
                 label: {
+                    show: showValues,
                     position: 'left',
                     verticalAlign: 'middle',
                     align: 'right',
-                    fontSize: 12
+                    fontSize: labelFontSize
                 },
                 leaves: {
                     label: {
+                        show: showValues,
                         position: 'right',
                         verticalAlign: 'middle',
                         align: 'left'
@@ -480,9 +717,24 @@ const FinancialCharts = {
 
         const dataset = data.datasets[0] || { data: [] };
         const maxVal = Math.max(...dataset.data, 100);
-        // Support custom colors from options
+
+        // Parse options
         const customColors = Array.isArray(options) ? options : options?.customColors;
-        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+        const barWidth = options.barWidth || 20;
+        const borderRadius = options.borderRadius || 10;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#666';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
 
         const option = {
             tooltip: {
@@ -521,19 +773,19 @@ const FinancialCharts = {
                 {
                     // Background
                     type: 'bar',
-                    barWidth: 20,
+                    barWidth: barWidth,
                     z: 1,
                     data: data.labels.map(() => maxVal),
                     itemStyle: {
                         color: '#e5e7eb',
-                        borderRadius: 10
+                        borderRadius: borderRadius
                     },
                     silent: true
                 },
                 {
                     // Value
                     type: 'bar',
-                    barWidth: 20,
+                    barWidth: barWidth,
                     z: 2,
                     data: dataset.data.map((val, i) => ({
                         value: val,
@@ -546,15 +798,16 @@ const FinancialCharts = {
                                     { offset: 1, color: BasicCharts.hexToRgba(colors[i], 0.6) }
                                 ]
                             },
-                            borderRadius: 10
+                            borderRadius: borderRadius
                         }
                     })),
                     label: {
-                        show: true,
+                        show: showValues,
                         position: 'right',
                         formatter: '{c}%',
-                        fontSize: 12,
-                        color: '#666'
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
                     },
                     barGap: '-100%'
                 }
@@ -572,19 +825,29 @@ const FinancialCharts = {
     createMetricCards(container, data, options = {}) {
         container.innerHTML = '';
 
+        // Parse options
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const cardMinWidth = options.cardMinWidth || 150;
+        const valueFontSize = options.valueFontSize || 32;
+        const labelFontSize = options.labelFontSize || 14;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(${cardMinWidth}px, 1fr));
             gap: 16px;
             padding: 16px;
             height: 100%;
             align-content: center;
         `;
 
-        // Support custom colors from options
-        const customColors = Array.isArray(options) ? options : options?.customColors;
-        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
         const dataset = data.datasets[0] || { data: [] };
 
         data.labels.forEach((label, i) => {
@@ -599,10 +862,10 @@ const FinancialCharts = {
                 transition: transform 0.3s ease;
             `;
             card.innerHTML = `
-                <div style="font-size: 32px; font-weight: bold; margin-bottom: 8px;">
-                    ${dataset.data[i]?.toLocaleString() || 0}
+                <div style="font-size: ${valueFontSize}px; font-weight: bold; margin-bottom: 8px;">
+                    ${showValues ? (dataset.data[i]?.toLocaleString() || 0) : '***'}
                 </div>
-                <div style="font-size: 14px; opacity: 0.9;">${label}</div>
+                <div style="font-size: ${labelFontSize}px; opacity: 0.9;">${label}</div>
             `;
             card.onmouseenter = () => card.style.transform = 'translateY(-5px)';
             card.onmouseleave = () => card.style.transform = 'translateY(0)';
@@ -620,6 +883,13 @@ const FinancialCharts = {
     createSparklines(container, data, options = {}) {
         container.innerHTML = '';
 
+        // Parse options
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const lineWidth = options.lineWidth || 2;
+        const areaOpacity = options.areaOpacity !== undefined ? options.areaOpacity : 0.2;
+        const smooth = options.smooth !== undefined ? options.smooth : true;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             display: flex;
@@ -630,8 +900,6 @@ const FinancialCharts = {
             overflow-y: auto;
         `;
 
-        // Support custom colors from options
-        const customColors = Array.isArray(options) ? options : options?.customColors;
         const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
 
         data.datasets.forEach((ds, i) => {
@@ -658,14 +926,14 @@ const FinancialCharts = {
             const lastVal = ds.data[ds.data.length - 1] || 0;
             const prevVal = ds.data[ds.data.length - 2] || lastVal;
             const trend = lastVal >= prevVal ? '↑' : '↓';
-            value.textContent = `${lastVal} ${trend}`;
+            value.textContent = showValues ? `${lastVal} ${trend}` : `-- ${trend}`;
 
             row.appendChild(label);
             row.appendChild(sparkContainer);
             row.appendChild(value);
             wrapper.appendChild(row);
 
-            // Create mini chart after append
+            // Create mini chart after append with configurable options
             setTimeout(() => {
                 const chart = echarts.init(sparkContainer);
                 chart.setOption({
@@ -675,10 +943,10 @@ const FinancialCharts = {
                     series: [{
                         type: 'line',
                         data: ds.data,
-                        smooth: true,
+                        smooth: smooth,
                         symbol: 'none',
-                        lineStyle: { width: 2, color: colors[i] },
-                        areaStyle: { opacity: 0.2, color: colors[i] }
+                        lineStyle: { width: lineWidth, color: colors[i] },
+                        areaStyle: { opacity: areaOpacity, color: colors[i] }
                     }]
                 });
             }, 0);

@@ -14,19 +14,50 @@ const ComparisonCharts = {
         // Parse options - support both array (colors) and object format
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const boxWidth = options.boxWidth || 50;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         const mainColor = customColors ? customColors[0] : '#6366f1';
         const borderColor = customColors ? customColors[1] || customColors[0] : '#4f46e5';
 
-        // Convert data to boxplot format
-        const boxData = data.datasets.map(ds => {
-            const sorted = [...ds.data].sort((a, b) => a - b);
+        // 按类别（labels）计算箱线图数据
+        // 每个类别收集所有 series 的数据点来计算统计值
+        const boxData = data.labels.map((label, labelIdx) => {
+            // 收集该类别下所有 series 的数据
+            const values = data.datasets.map(ds => ds.data[labelIdx]).filter(v => v !== undefined && !isNaN(v));
+
+            // 如果只有一个值，需要创建虚拟分布
+            if (values.length === 0) return [0, 0, 0, 0, 0];
+            if (values.length === 1) {
+                const v = values[0];
+                return [v, v, v, v, v];
+            }
+
+            const sorted = [...values].sort((a, b) => a - b);
             const n = sorted.length;
             const min = sorted[0];
             const max = sorted[n - 1];
-            const q1 = sorted[Math.floor(n * 0.25)];
-            const median = sorted[Math.floor(n * 0.5)];
-            const q3 = sorted[Math.floor(n * 0.75)];
+
+            // 计算四分位数
+            const getQuartile = (arr, q) => {
+                const pos = (arr.length - 1) * q;
+                const base = Math.floor(pos);
+                const rest = pos - base;
+                if (arr[base + 1] !== undefined) {
+                    return arr[base] + rest * (arr[base + 1] - arr[base]);
+                } else {
+                    return arr[base];
+                }
+            };
+
+            const q1 = getQuartile(sorted, 0.25);
+            const median = getQuartile(sorted, 0.5);
+            const q3 = getQuartile(sorted, 0.75);
+
             return [min, q1, median, q3, max];
         });
 
@@ -36,16 +67,29 @@ const ComparisonCharts = {
                 axisPointer: { type: 'shadow' },
                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                 borderWidth: 0,
-                textStyle: { color: '#fff' }
+                textStyle: { color: '#fff' },
+                formatter: function (params) {
+                    if (params.data) {
+                        const d = params.data;
+                        return `<b>${params.name}</b><br/>
+                                最大值: ${d[4]}<br/>
+                                Q3: ${d[3]}<br/>
+                                中位数: ${d[2]}<br/>
+                                Q1: ${d[1]}<br/>
+                                最小值: ${d[0]}`;
+                    }
+                    return '';
+                }
             },
             grid: {
                 left: '10%',
                 right: '10%',
+                top: '12%',   // 增加顶部空间给标签
                 bottom: '15%'
             },
             xAxis: {
                 type: 'category',
-                data: data.datasets.map(ds => ds.label || 'Data'),
+                data: data.labels,
                 boundaryGap: true,
                 axisLine: { lineStyle: { color: '#ddd' } },
                 axisTick: { show: false }
@@ -55,16 +99,64 @@ const ComparisonCharts = {
                 axisLine: { show: false },
                 splitLine: { lineStyle: { color: '#eee' } }
             },
-            series: [{
-                name: 'Boxplot',
-                type: 'boxplot',
-                data: boxData,
-                barWidth: boxWidth + '%',
-                itemStyle: {
-                    color: mainColor,
-                    borderColor: borderColor
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
                 }
-            }]
+            ],
+            series: [
+                {
+                    name: 'Boxplot',
+                    type: 'boxplot',
+                    data: boxData,
+                    boxWidth: [boxWidth + '%', boxWidth + '%'],
+                    itemStyle: {
+                        color: mainColor,
+                        borderColor: borderColor,
+                        borderWidth: 2
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            borderWidth: 3,
+                            shadowBlur: 5,
+                            shadowColor: 'rgba(0, 0, 0, 0.3)'
+                        }
+                    }
+                },
+                // 使用 scatter 系列显示中位数标签
+                {
+                    name: 'Median Labels',
+                    type: 'scatter',
+                    data: showValues ? boxData.map((item, idx) => ({
+                        value: [idx, item[4] + 2],
+                        median: item[2]
+                    })) : [],
+                    symbolSize: 1,
+                    itemStyle: {
+                        color: 'transparent'
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        distance: 5,
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor,
+                        formatter: (params) => params.data.median.toFixed(1)
+                    },
+                    silent: true,
+                    z: 10
+                }
+            ]
         };
 
         chart.setOption(option);
@@ -79,8 +171,12 @@ const ComparisonCharts = {
 
         // Parse options - support both array (colors) and object format
         const customColors = Array.isArray(options) ? options : options?.customColors;
+        const showValues = options.showValues !== undefined ? options.showValues : (options.showLabel !== undefined ? options.showLabel : true);
+
+        // Data label styling options
         const labelFontSize = options.labelFontSize || 12;
-        const showLabel = options.showLabel !== undefined ? options.showLabel : true;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         // Generate heatmap data from standard format
         const heatmapData = [];
@@ -92,10 +188,14 @@ const ComparisonCharts = {
 
         const maxVal = Math.max(...heatmapData.map(d => d[2]));
 
-        // Use custom colors or default
-        const heatColors = customColors && customColors.length >= 2
-            ? customColors.slice(0, 6)
-            : ['#f0f9ff', '#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0369a1'];
+        // Use custom colors or default from config
+        let heatColors = ['#f0f9ff', '#bae6fd', '#7dd3fc', '#38bdf8', '#0284c7', '#0369a1'];
+        if (customColors && customColors.length >= 2) {
+            heatColors = customColors.slice(0, 6);
+        } else if (typeof ChartColorsConfig !== 'undefined') {
+            const rec = ChartColorsConfig.getRecommendedColors('heatmap', 6);
+            if (rec && rec.length >= 2) heatColors = rec;
+        }
 
         const option = {
             tooltip: {
@@ -124,6 +224,20 @@ const ComparisonCharts = {
                 axisLine: { show: false },
                 axisTick: { show: false }
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             visualMap: {
                 min: 0,
                 max: maxVal,
@@ -140,8 +254,10 @@ const ComparisonCharts = {
                 type: 'heatmap',
                 data: heatmapData,
                 label: {
-                    show: showLabel,
-                    fontSize: labelFontSize
+                    show: showValues,
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 },
                 emphasis: {
                     itemStyle: {
@@ -168,6 +284,12 @@ const ComparisonCharts = {
         const maxSize = options.maxSize !== undefined ? options.maxSize + '%' : '100%';
         const gap = options.gap !== undefined ? options.gap : 2;
         const sort = options.sort || 'descending';
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
 
         const dataset = data.datasets[0] || { data: [] };
         const funnelData = data.labels.map((label, i) => ({
@@ -175,7 +297,12 @@ const ComparisonCharts = {
             value: dataset.data[i] || 0
         }));
 
-        const colors = customColors || BasicCharts.getColorPalette(funnelData.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, funnelData.length);
+        } else {
+            colors = BasicCharts.getColorPalette(funnelData.length);
+        }
 
         const option = {
             tooltip: {
@@ -203,9 +330,12 @@ const ComparisonCharts = {
                 sort: sort,
                 gap: gap,
                 label: {
-                    show: true,
+                    show: showValues,
                     position: 'inside',
-                    formatter: '{b}: {c}'
+                    formatter: '{b}: {c}',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 },
                 labelLine: {
                     length: 10
@@ -243,8 +373,14 @@ const ComparisonCharts = {
         const borderWidth = options.borderWidth !== undefined ? options.borderWidth : 2;
         const gapWidth = options.gapWidth !== undefined ? options.gapWidth : 2;
         const labelFontSize = options.labelFontSize || 14;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
 
-        const colors = customColors || BasicCharts.getColorPalette(10);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, 10);
+        } else {
+            colors = BasicCharts.getColorPalette(10);
+        }
 
         // Convert standard data to treemap format
         let treemapData;
@@ -275,15 +411,15 @@ const ComparisonCharts = {
                 data: treemapData,
                 width: '100%',
                 height: '100%',
-                roam: false,
+                roam: true,
                 nodeClick: 'zoomToNode',
                 breadcrumb: {
                     show: true,
                     height: 30
                 },
                 label: {
-                    show: true,
-                    formatter: '{b}',
+                    show: showValues,
+                    formatter: showValues ? '{b}: {c}' : '{b}',
                     fontSize: labelFontSize
                 },
                 upperLabel: {
@@ -332,6 +468,12 @@ const ComparisonCharts = {
         // Parse options - support both array (colors) and object format
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const borderWidth = options.borderWidth !== undefined ? options.borderWidth : 2;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'normal';
+        const labelColor = options.labelColor || '#333';
 
         // Convert standard data to sunburst format
         let sunburstData;
@@ -345,7 +487,12 @@ const ComparisonCharts = {
             }));
         }
 
-        const colors = customColors || BasicCharts.getColorPalette(sunburstData.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, sunburstData.length);
+        } else {
+            colors = BasicCharts.getColorPalette(sunburstData.length);
+        }
 
         const option = {
             tooltip: {
@@ -372,14 +519,22 @@ const ComparisonCharts = {
                             borderWidth: borderWidth
                         },
                         label: {
-                            rotate: 'tangential'
+                            show: showValues,
+                            rotate: 'tangential',
+                            fontSize: labelFontSize,
+                            fontWeight: labelFontWeight,
+                            color: labelColor
                         }
                     },
                     {
                         r0: '45%',
                         r: '70%',
                         label: {
-                            align: 'right'
+                            show: showValues,
+                            align: 'right',
+                            fontSize: labelFontSize,
+                            fontWeight: labelFontWeight,
+                            color: labelColor
                         }
                     },
                     {
@@ -412,6 +567,11 @@ const ComparisonCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const curveness = options.curveness !== undefined ? options.curveness : 0.5;
         const nodeWidth = options.nodeWidth || 20;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
 
         // Convert standard data to sankey format
         let sankeyData;
@@ -446,10 +606,11 @@ const ComparisonCharts = {
 
         // Apply colors to nodes if custom colors provided
         if (customColors && customColors.length > 0) {
+            const colors = BasicCharts.generateColors(customColors, sankeyData.nodes.length);
             sankeyData.nodes = sankeyData.nodes.map((node, i) => ({
                 ...node,
                 itemStyle: {
-                    color: customColors[i % customColors.length]
+                    color: colors[i % colors.length]
                 }
             }));
         }
@@ -480,8 +641,10 @@ const ComparisonCharts = {
                     borderColor: '#aaa'
                 },
                 label: {
+                    show: showValues,
                     color: 'auto',
-                    fontWeight: 'bold'
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight
                 }
             }]
         };
@@ -502,6 +665,7 @@ const ComparisonCharts = {
         const endAngle = options.endAngle !== undefined ? options.endAngle : -20;
         const progressWidth = options.progressWidth || 18;
         const splitNumber = options.splitNumber || 10;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
 
         const gaugeColor = customColors ? customColors[0] : '#6366f1';
         const gaugeColor2 = customColors && customColors[1] ? customColors[1] : BasicCharts.hexToRgba(gaugeColor, 0.6);
@@ -580,6 +744,7 @@ const ComparisonCharts = {
                     color: '#333'
                 },
                 detail: {
+                    show: showValues,
                     fontSize: 36,
                     offsetCenter: [0, '40%'],
                     valueAnimation: true,
@@ -625,7 +790,12 @@ const ComparisonCharts = {
             }));
         }
 
-        const colors = customColors || BasicCharts.getColorPalette(wordData.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, wordData.length);
+        } else {
+            colors = BasicCharts.getColorPalette(wordData.length);
+        }
 
         const option = {
             tooltip: {
@@ -697,6 +867,22 @@ const ComparisonCharts = {
     createDataTable(container, data, options = {}) {
         container.innerHTML = '';
 
+        // Parse custom colors
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const headerBgColor = customColors && customColors[0] ? customColors[0] : null;
+        const altRowColor = customColors && customColors[1] ? customColors[1] : null;
+
+        // Helper function to get contrasting text color
+        const getContrastColor = (hexColor) => {
+            if (!hexColor) return '#333';
+            const hex = hexColor.replace('#', '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5 ? '#333' : '#fff';
+        };
+
         const tableWrapper = document.createElement('div');
         tableWrapper.style.cssText = 'overflow: auto; height: 100%; padding: 10px;';
 
@@ -715,13 +901,18 @@ const ComparisonCharts = {
         headers.forEach(h => {
             const th = document.createElement('th');
             th.textContent = h;
-            th.style.cssText = `
+            let headerStyle = `
                 padding: 12px 16px;
                 text-align: left;
-                background: var(--bg-tertiary);
                 border-bottom: 2px solid var(--border-color);
                 font-weight: 600;
             `;
+            if (headerBgColor) {
+                headerStyle += `background: ${headerBgColor}; color: ${getContrastColor(headerBgColor)};`;
+            } else {
+                headerStyle += `background: var(--bg-tertiary);`;
+            }
+            th.style.cssText = headerStyle;
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
@@ -731,6 +922,11 @@ const ComparisonCharts = {
         const tbody = document.createElement('tbody');
         data.labels.forEach((label, i) => {
             const row = document.createElement('tr');
+
+            // Apply alternating row color if set
+            if (altRowColor && i % 2 === 1) {
+                row.style.backgroundColor = BasicCharts.hexToRgba(altRowColor, 0.15);
+            }
 
             const labelCell = document.createElement('td');
             labelCell.textContent = label;

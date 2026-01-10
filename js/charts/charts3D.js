@@ -15,6 +15,12 @@ const Charts3D = {
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 10;
         const shadow = options.shadow !== undefined ? options.shadow : true;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         // Convert standard data to 3D format
         const bar3DData = [];
@@ -35,7 +41,7 @@ const Charts3D = {
             visualMap: {
                 max: maxVal,
                 inRange: {
-                    color: customColors || ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316']
+                    color: customColors || ChartColorsConfig?.presets?.default?.colors.slice(0, 5) || ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316']
                 }
             },
             xAxis3D: {
@@ -77,13 +83,26 @@ const Charts3D = {
                 })),
                 shading: 'lambert',
                 label: {
-                    show: false
+                    show: showValues,
+                    formatter: function (params) {
+                        return params.value[2];
+                    },
+                    textStyle: {
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    }
                 },
                 emphasis: {
                     label: {
                         show: true,
                         formatter: function (params) {
                             return params.value[2];
+                        },
+                        textStyle: {
+                            fontSize: labelFontSize,
+                            fontWeight: labelFontWeight,
+                            color: labelColor
                         }
                     }
                 }
@@ -105,10 +124,21 @@ const Charts3D = {
         const symbolSize = options.symbolSize || 12;
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 5;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || 'inherit';
 
         // Generate 3D scatter data
         const scatter3DData = [];
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         data.datasets.forEach((ds, idx) => {
             ds.data.forEach((val, i) => {
@@ -157,6 +187,17 @@ const Charts3D = {
                 itemStyle: {
                     opacity: 0.8
                 },
+                label: {
+                    show: showValues,
+                    formatter: function (params) {
+                        return params.value[1];
+                    },
+                    textStyle: {
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    }
+                },
                 emphasis: {
                     itemStyle: {
                         opacity: 1
@@ -180,12 +221,22 @@ const Charts3D = {
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 3;
         const wireframe = options.wireframe !== undefined ? options.wireframe : true;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         // Custom gradient colors for surface
-        const gradientColors = customColors && customColors.length >= 2
-            ? customColors
-            : ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8',
-                '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'];
+        let gradientColors = ChartColorsConfig?.gradientPresets?.coolWarm?.colors || ['#3b82f6', '#60a5fa', '#fef3c7', '#fbbf24', '#f97316', '#ef4444'];
+
+        if (customColors && customColors.length >= 2) {
+            gradientColors = customColors;
+        } else if (typeof ChartColorsConfig !== 'undefined') {
+            const rec = ChartColorsConfig.getRecommendedColors('surface', 6);
+            if (rec && rec.length >= 2) gradientColors = rec;
+        }
 
         // Generate surface data from input
         const surfaceData = [];
@@ -238,7 +289,15 @@ const Charts3D = {
                     show: wireframe
                 },
                 shading: 'color',
-                data: surfaceData
+                data: surfaceData,
+                label: {
+                    show: showValues,
+                    textStyle: {
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    }
+                }
             }]
         };
 
@@ -257,10 +316,17 @@ const Charts3D = {
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 3;
         const symbolSize = options.symbolSize || 8;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || 'inherit';
 
         // Custom color for scatter points
-        const mainColor = customColors && customColors[0] ? customColors[0] : '#f97316';
-        const emphasisColor = customColors && customColors[1] ? customColors[1] : '#ec4899';
+        const defaultColors = ChartColorsConfig?.presets?.default?.colors || ['#f97316', '#ec4899'];
+        const mainColor = customColors && customColors[0] ? customColors[0] : (defaultColors[4] || '#f97316');
+        const emphasisColor = customColors && customColors[1] ? customColors[1] : (defaultColors[2] || '#ec4899');
 
         // Generate globe scatter data
         const globeData = data.labels.map((label, i) => ({
@@ -317,6 +383,17 @@ const Charts3D = {
                     itemStyle: {
                         color: emphasisColor
                     }
+                },
+                label: {
+                    show: showValues,
+                    formatter: function (params) {
+                        return params.name + ': ' + params.value[2];
+                    },
+                    textStyle: {
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    }
                 }
             }]
         };
@@ -336,8 +413,19 @@ const Charts3D = {
         const lineWidth = options.lineWidth || 4;
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 5;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || 'inherit';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         const series = data.datasets.map((ds, idx) => ({
             type: 'line3D',
@@ -345,6 +433,17 @@ const Charts3D = {
             lineStyle: {
                 width: lineWidth,
                 color: colors[idx]
+            },
+            label: {
+                show: showValues,
+                formatter: function (params) {
+                    return params.value[2];
+                },
+                textStyle: {
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
+                }
             }
         }));
 

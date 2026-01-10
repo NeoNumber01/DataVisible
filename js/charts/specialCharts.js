@@ -16,10 +16,28 @@ const SpecialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const barWidth = options.barWidth || 20;
         const showLabel = options.showLabel !== undefined ? options.showLabel : true;
+        const showValues = options.showValues !== undefined ? options.showValues : showLabel;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         // Dual color support: positive (increase), negative (decrease)
-        const positiveColor = customColors && customColors[0] ? customColors[0] : '#22c55e';
-        const negativeColor = customColors && customColors[1] ? customColors[1] : '#ef4444';
+        // Waterfall typically uses Green for increase and Red for decrease (Western style) or Red/Green (Chinese style)
+        // Here we default to Green/Red (Green=Up/Increase) as per original code
+        // Dual color support
+        // Use ChartColorsConfig for consistent dual color strategy
+        let dualColors = ChartColorsConfig?.dualColorPresets?.greenRed || { positive: '#22c55e', negative: '#ef4444' };
+
+        if (typeof ChartColorsConfig !== 'undefined') {
+            // If getRecommendedColors suggests a dual palette, use it
+            const rec = ChartColorsConfig.getRecommendedColors('waterfall', 2);
+            if (rec && rec.length >= 2) dualColors = { positive: rec[0], negative: rec[1] };
+        }
+
+        const positiveColor = customColors && customColors[0] ? customColors[0] : dualColors.positive;
+        const negativeColor = customColors && customColors[1] ? customColors[1] : dualColors.negative;
 
         const dataset = data.datasets[0] || { data: [] };
         const values = dataset.data;
@@ -84,6 +102,20 @@ const SpecialCharts = {
                 axisLine: { show: false },
                 splitLine: { lineStyle: { color: '#eee' } }
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: [
                 {
                     name: '辅助',
@@ -106,7 +138,7 @@ const SpecialCharts = {
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
-                    label: { show: showLabel, position: 'top' },
+                    label: { show: showValues, position: 'top', fontSize: labelFontSize, fontWeight: labelFontWeight, color: labelColor },
                     itemStyle: { color: positiveColor },
                     data: positiveData
                 },
@@ -115,7 +147,7 @@ const SpecialCharts = {
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
-                    label: { show: showLabel, position: 'bottom' },
+                    label: { show: showValues, position: 'bottom', fontSize: labelFontSize, fontWeight: labelFontWeight, color: labelColor },
                     itemStyle: { color: negativeColor },
                     data: negativeData
                 }
@@ -141,8 +173,19 @@ const SpecialCharts = {
         const lineWidth = options.lineWidth || 3;
         const symbolSize = options.symbolSize || 8;
         const areaOpacity = options.areaOpacity !== undefined ? options.areaOpacity : 0.2;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         const option = {
             tooltip: {
@@ -179,7 +222,8 @@ const SpecialCharts = {
                 {
                     type: 'inside',
                     xAxisIndex: 0,
-                    filterMode: 'filter'
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
                 }
             ],
             series: data.datasets.map((ds, i) => ({
@@ -189,6 +233,14 @@ const SpecialCharts = {
                 symbol: 'circle',
                 symbolSize: symbolSize,
                 data: ds.data,
+                label: {
+                    show: showValues,
+                    position: 'top',
+                    formatter: '{c}',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
+                },
                 lineStyle: {
                     width: lineWidth,
                     color: colors[i]
@@ -220,6 +272,12 @@ const SpecialCharts = {
         const repulsion = options.repulsion || 200;
         const edgeLength = options.edgeLength || 100;
         const curveness = options.curveness !== undefined ? options.curveness : 0.3;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
 
         // Convert data to graph format
         let graphData;
@@ -255,7 +313,12 @@ const SpecialCharts = {
             graphData = { nodes, links };
         }
 
-        const colors = customColors || BasicCharts.getColorPalette(3);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, 3);
+        } else {
+            colors = BasicCharts.getColorPalette(3);
+        }
 
         const option = {
             tooltip: {
@@ -278,9 +341,12 @@ const SpecialCharts = {
                 ],
                 roam: true,
                 label: {
-                    show: true,
+                    show: showValues,
                     position: 'right',
-                    formatter: '{b}'
+                    formatter: '{b}',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 },
                 labelLayout: {
                     hideOverlap: true
@@ -317,6 +383,23 @@ const SpecialCharts = {
     createMapChart(container, data, options = {}) {
         const chart = echarts.init(container);
 
+        // Parse options - support both array (colors) and object format
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const symbolSize = options.symbolSize || 50;
+
+        // Custom gradient colors for visualMap
+        // Use ChartColorsConfig.getRecommendedColors for map gradients if available
+        let gradientColors = ChartColorsConfig?.gradientPresets?.coolWarm?.colors || ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e'];
+
+        if (customColors && customColors.length >= 2) {
+            gradientColors = customColors;
+        } else if (typeof ChartColorsConfig !== 'undefined') {
+            const rec = ChartColorsConfig.getRecommendedColors('map', 4);
+            if (rec && rec.length >= 2) gradientColors = rec;
+        }
+
+        const scatterColor = customColors && customColors[0] ? customColors[0] : (ChartColorsConfig?.presets?.default?.colors[0] || '#6366f1');
+
         // Since we may not have China map geo data loaded,
         // we'll create a scatter geo simulation
         const dataset = data.datasets[0] || { data: [] };
@@ -348,7 +431,7 @@ const SpecialCharts = {
                 max: maxVal,
                 calculable: true,
                 inRange: {
-                    color: ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e']
+                    color: gradientColors
                 },
                 textStyle: { color: '#333' }
             },
@@ -375,7 +458,7 @@ const SpecialCharts = {
                 coordinateSystem: 'geo',
                 data: scatterData,
                 symbolSize: function (val) {
-                    return Math.max(10, val[2] / maxVal * 50);
+                    return Math.max(10, val[2] / maxVal * symbolSize);
                 },
                 encode: {
                     value: 2
@@ -386,7 +469,7 @@ const SpecialCharts = {
                     show: false
                 },
                 itemStyle: {
-                    color: '#6366f1'
+                    color: scatterColor
                 },
                 emphasis: {
                     label: {
@@ -440,21 +523,55 @@ const SpecialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const lineWidth = options.lineWidth || 2;
         const opacity = options.opacity !== undefined ? options.opacity : 0.7;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
         // Create parallel axis for each label
-        const parallelAxis = data.labels.map((label, i) => ({
-            dim: i,
-            name: label,
-            nameLocation: 'end',
-            nameTextStyle: {
-                fontSize: 12
+        // Create parallel axis for each label with dynamic max/min calculation
+        const parallelAxis = data.labels.map((label, i) => {
+            // Find min/max values for this dimension across all datasets
+            let maxVal = -Infinity;
+            let minVal = Infinity;
+            let hasData = false;
+
+            data.datasets.forEach(ds => {
+                const val = Number(ds.data[i]);
+                if (!isNaN(val)) {
+                    hasData = true;
+                    if (val > maxVal) maxVal = val;
+                    if (val < minVal) minVal = val;
+                }
+            });
+
+            // If no valid data found for this dimension, set default range
+            if (!hasData) {
+                maxVal = 100;
+                minVal = 0;
             }
-        }));
 
-        // Transform data for parallel coordinates
-        const seriesData = data.datasets.map(ds => ds.data);
+            // Determine axis min/max
+            // Standardize min to 0 if data is positive, otherwise follow data min
+            const axisMin = minVal >= 0 ? 0 : Math.floor(minVal);
+            // Ensure max covers the data
+            const axisMax = Math.ceil(maxVal);
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+            return {
+                dim: i,
+                name: label,
+                nameLocation: 'end',
+                min: axisMin,
+                max: axisMax,
+                nameTextStyle: {
+                    fontSize: 12
+                }
+            };
+        });
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         const option = {
             tooltip: {
@@ -492,7 +609,10 @@ const SpecialCharts = {
                         opacity: 1
                     }
                 },
-                data: [ds.data]
+                data: [ds.data],
+                label: {
+                    show: showValues
+                }
             }))
         };
 
@@ -511,11 +631,17 @@ const SpecialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const cellSize = options.cellSize || 15;
         const borderWidth = options.borderWidth !== undefined ? options.borderWidth : 2;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
         // Gradient colors for calendar heatmap
-        const gradientColors = customColors && customColors.length >= 2
-            ? customColors
-            : ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+        let gradientColors = ChartColorsConfig?.gradientPresets?.greenScale?.colors || ['#f0fdf4', '#bbf7d0', '#4ade80', '#22c55e', '#15803d'];
+
+        if (customColors && customColors.length >= 2) {
+            gradientColors = customColors;
+        } else if (typeof ChartColorsConfig !== 'undefined') {
+            const rec = ChartColorsConfig.getRecommendedColors('calendar', 5);
+            if (rec && rec.length >= 2) gradientColors = rec;
+        }
 
         // Generate calendar data from input
         const dataset = data.datasets[0] || { data: [] };
@@ -590,7 +716,11 @@ const SpecialCharts = {
             series: [{
                 type: 'heatmap',
                 coordinateSystem: 'calendar',
-                data: calendarData
+                data: calendarData,
+                label: {
+                    show: showValues,
+                    formatter: (params) => params.value[1]
+                }
             }]
         };
 
@@ -607,16 +737,33 @@ const SpecialCharts = {
 
         // Parse options - support both array (colors) and object format
         const customColors = Array.isArray(options) ? options : options?.customColors;
-        const smooth = options.smooth !== undefined ? options.smooth : 0.5;
+        const seriesColors = options?.seriesColors || {};
+        const showValues = options.showValues !== undefined ? options.showValues : false;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        // Build colors array - prioritize seriesColors over customColors
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
-        // Convert to theme river format
+        // Apply per-series colors if set
+        if (Object.keys(seriesColors).length > 0) {
+            const defaultColors = BasicCharts.getColorPalette(data.datasets.length);
+            colors = defaultColors.map((c, i) => seriesColors[i] || c);
+        }
+
+        // Get all series names
+        const seriesNames = data.datasets.map(ds => ds.label || 'Data');
+
+        // Convert to theme river format: [time/index, value, seriesName]
+        // themeRiver requires numeric or date values for the first dimension
         const riverData = [];
         data.labels.forEach((label, i) => {
             data.datasets.forEach(ds => {
                 riverData.push([
-                    label,
+                    i,  // Use numeric index instead of category label
                     ds.data[i] || 0,
                     ds.label || 'Data'
                 ]);
@@ -624,6 +771,7 @@ const SpecialCharts = {
         });
 
         const option = {
+            color: colors,  // Colors must be at top level for themeRiver
             tooltip: {
                 trigger: 'axis',
                 axisPointer: {
@@ -636,29 +784,38 @@ const SpecialCharts = {
                 },
                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
                 borderWidth: 0,
-                textStyle: { color: '#fff' }
+                textStyle: { color: '#fff' },
+                formatter: function (params) {
+                    if (!params || params.length === 0) return '';
+                    const idx = params[0].value[0];
+                    const label = data.labels[idx] || idx;
+                    let result = `<strong>${label}</strong><br/>`;
+                    params.forEach(p => {
+                        result += `${p.marker} ${p.value[2]}: ${p.value[1]}<br/>`;
+                    });
+                    return result;
+                }
             },
             legend: {
-                data: data.datasets.map(ds => ds.label)
+                data: seriesNames,
+                top: 5
             },
             singleAxis: {
+                type: 'value',
                 top: 50,
                 bottom: 50,
-                axisTick: {},
-                axisLabel: {},
-                type: 'category',
-                axisPointer: {
-                    animation: true,
-                    label: {
-                        show: true
+                left: 50,
+                right: 50,
+                min: 0,
+                max: data.labels.length - 1,
+                axisLabel: {
+                    formatter: function (value) {
+                        return data.labels[Math.round(value)] || value;
                     }
-                },
-                data: data.labels
+                }
             },
             series: [{
                 type: 'themeRiver',
-                smooth: smooth,
-                color: customColors,
                 emphasis: {
                     itemStyle: {
                         shadowBlur: 20,
@@ -667,9 +824,9 @@ const SpecialCharts = {
                 },
                 data: riverData,
                 label: {
-                    show: false
-                },
-                color: colors
+                    show: showValues,
+                    position: 'inside'
+                }
             }]
         };
 
@@ -689,6 +846,13 @@ const SpecialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const symbolSize = options.symbolSize || 20;
         const symbolMargin = options.symbolMargin || 2;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
 
         const option = {
@@ -717,6 +881,20 @@ const SpecialCharts = {
                 axisLine: { show: false },
                 axisTick: { show: false }
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    zoomOnMouseWheel: false
+                },
+                {
+                    type: 'slider',
+                    xAxisIndex: 0,
+                    filterMode: 'filter',
+                    bottom: 10
+                }
+            ],
             series: [{
                 type: 'pictorialBar',
                 symbol: 'roundRect',
@@ -728,9 +906,12 @@ const SpecialCharts = {
                     itemStyle: { color: colors[i] }
                 })),
                 label: {
-                    show: true,
+                    show: showValues,
                     position: 'right',
-                    formatter: '{c}'
+                    formatter: '{c}',
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 }
             }]
         };
@@ -755,6 +936,7 @@ const SpecialCharts = {
         const customColors = Array.isArray(options) ? options : options?.customColors;
         const progressWidth = options.progressWidth || 30;
         const roundCap = options.roundCap !== undefined ? options.roundCap : true;
+        const showValues = options.showValues !== undefined ? options.showValues : true;
         const color1 = customColors && customColors[0] ? customColors[0] : '#6366f1';
         const color2 = customColors && customColors[1] ? customColors[1] : '#8b5cf6';
 
@@ -794,16 +976,18 @@ const SpecialCharts = {
                     value: Math.round(percentage * 100),
                     name: dataset.label || 'Progress',
                     title: {
+                        show: showValues,
                         offsetCenter: ['0%', '30%'],
                         fontSize: 16,
                         color: '#666'
                     },
                     detail: {
+                        show: showValues,
                         offsetCenter: ['0%', '-10%'],
                         fontSize: 40,
                         fontWeight: 'bold',
                         formatter: '{value}%',
-                        color: '#6366f1'
+                        color: color1
                     }
                 }]
             }]

@@ -20,6 +20,8 @@ const i18n = {
         csvInput: 'CSV 输入',
         fileImport: '文件导入',
         sampleData: '示例数据',
+        dualColorSchemes: '涨跌/正负配色',
+        gradientColorSchemes: '渐变配色',
         applyData: '应用数据',
         reset: '重置',
         export: '导出',
@@ -141,7 +143,27 @@ const i18n = {
         jpgDesc: '有损压缩，文件更小',
         webpDesc: '现代格式，高压缩比',
         svgDesc: '矢量图，可无限缩放',
-        exportError: '导出失败'
+        exportError: '导出失败',
+        // Missing UI Translations
+        layout1: '单图',
+        layout2: '双图',
+        layout4: '四图',
+        themeToggle: '切换主题',
+        togglePanel: '收起/展开',
+        chartActionColor: '颜色',
+        chartActionSettings: '图表设置',
+        chartActionValues: '显示/隐藏数值',
+        chartActionFullscreen: '全屏',
+        chartActionDownload: '下载图表',
+        tableHeaderCategory: '类别',
+        tableHeaderValue1: '数值1',
+        tableHeaderValue2: '数值2',
+        resetZoom: '重置缩放',
+        zoomIn: '放大',
+        zoomOut: '缩小',
+        chartActionResetZoom: '重置缩放',
+        chartActionZoomIn: '放大',
+        chartActionZoomOut: '缩小'
     },
 
     en: {
@@ -159,6 +181,8 @@ const i18n = {
         csvInput: 'CSV Input',
         fileImport: 'File Import',
         sampleData: 'Sample Data',
+        dualColorSchemes: 'Positive/Negative Colors',
+        gradientColorSchemes: 'Gradient Colors',
         applyData: 'Apply Data',
         reset: 'Reset',
         export: 'Export',
@@ -280,7 +304,27 @@ const i18n = {
         jpgDesc: 'Lossy, smaller file size',
         webpDesc: 'Modern format, high compression',
         svgDesc: 'Vector, infinitely scalable',
-        exportError: 'Export failed'
+        exportError: 'Export failed',
+        // Missing UI Translations
+        layout1: 'Single Chart',
+        layout2: 'Double Chart',
+        layout4: 'Quad Chart',
+        themeToggle: 'Toggle Theme',
+        togglePanel: 'Expand/Collapse',
+        chartActionColor: 'Color',
+        chartActionSettings: 'Chart Settings',
+        chartActionValues: 'Show/Hide Values',
+        chartActionFullscreen: 'Fullscreen',
+        chartActionDownload: 'Download Chart',
+        tableHeaderCategory: 'Category',
+        tableHeaderValue1: 'Value 1',
+        tableHeaderValue2: 'Value 2',
+        resetZoom: 'Reset Zoom',
+        zoomIn: 'Zoom In',
+        zoomOut: 'Zoom Out',
+        chartActionResetZoom: 'Reset Zoom',
+        chartActionZoomIn: 'Zoom In',
+        chartActionZoomOut: 'Zoom Out'
     }
 };
 
@@ -392,6 +436,12 @@ class App {
                     this.showToast(isShowing ? (t.valuesShown || '数值已显示') : (t.valuesHidden || '数值已隐藏'), 'success');
                     // Toggle button visual state
                     actionBtn.classList.toggle('active', isShowing);
+                } else if (action === 'resetzoom') {
+                    this.chartRenderer.resetZoom(slot);
+                } else if (action === 'zoomin') {
+                    this.chartRenderer.handleZoom(slot, 'in');
+                } else if (action === 'zoomout') {
+                    this.chartRenderer.handleZoom(slot, 'out');
                 }
             }
         });
@@ -399,7 +449,13 @@ class App {
 
         // Data panel toggle
         document.getElementById('togglePanel')?.addEventListener('click', () => {
+            document.body.classList.toggle('panel-collapsed');
             document.querySelector('.data-panel')?.classList.toggle('collapsed');
+
+            // Trigger resize after transition to ensure charts fill the new space
+            setTimeout(() => {
+                this.chartRenderer.handleResize();
+            }, 300);
         });
 
         // Tab buttons
@@ -557,6 +613,55 @@ class App {
                 nameSpan.textContent = t[chartType];
             }
         });
+
+        // Update layout buttons titles
+        document.querySelectorAll('.layout-btn').forEach(btn => {
+            const layout = btn.dataset.layout;
+            if (layout === '1') btn.title = t.layout1;
+            if (layout === '2') btn.title = t.layout2;
+            if (layout === '4') btn.title = t.layout4;
+        });
+
+        // Update other button titles
+        const themeBtn = document.getElementById('themeToggle');
+        if (themeBtn) themeBtn.title = t.themeToggle;
+
+        const togglePanelBtn = document.getElementById('togglePanel');
+        if (togglePanelBtn) togglePanelBtn.title = t.togglePanel;
+
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) exportBtn.title = t.export;
+
+        // Update chart action buttons titles
+        document.querySelectorAll('.chart-action-btn').forEach(btn => {
+            const action = btn.dataset.action;
+            if (action === 'colorpicker') btn.title = t.chartActionColor;
+            if (action === 'settings') btn.title = t.chartActionSettings;
+            if (action === 'togglevalues') btn.title = t.chartActionValues;
+            if (action === 'zoomin') btn.title = t.chartActionZoomIn;
+            if (action === 'zoomout') btn.title = t.chartActionZoomOut;
+            if (action === 'resetzoom') btn.title = t.chartActionResetZoom;
+            if (action === 'fullscreen') btn.title = t.chartActionFullscreen;
+            if (action === 'download') btn.title = t.chartActionDownload;
+        });
+
+        // Update table header placeholders/values if they match default
+        const headerInputs = document.querySelectorAll('.header-input');
+        if (headerInputs.length >= 3) {
+            // Check if we should update (simple heuristic: if it matches the other language's default)
+            const otherLang = this.currentLang === 'zh' ? 'en' : 'zh';
+            const otherT = i18n[otherLang];
+
+            if (headerInputs[0].value === otherT.tableHeaderCategory || headerInputs[0].value === t.tableHeaderCategory) {
+                headerInputs[0].value = t.tableHeaderCategory;
+            }
+            if (headerInputs[1].value === otherT.tableHeaderValue1 || headerInputs[1].value === t.tableHeaderValue1) {
+                headerInputs[1].value = t.tableHeaderValue1;
+            }
+            if (headerInputs[2].value === otherT.tableHeaderValue2 || headerInputs[2].value === t.tableHeaderValue2) {
+                headerInputs[2].value = t.tableHeaderValue2;
+            }
+        }
 
         // Refresh chart selects with new language
         this.refreshChartSelects();
@@ -919,12 +1024,12 @@ class App {
                 <button class="close-picker">×</button>
             </div>
             <div class="color-mode-info" style="background:#f8fafc; padding:8px 12px; margin:-8px -12px 8px; border-radius:6px 6px 0 0; font-size:12px;">
-                <strong style="color:#6366f1;">${colorModeInfo.title}</strong>
-                <span style="color:#64748b; margin-left:8px;">${chartSuggestion.tip}</span>
+                <strong style="color:#6366f1;">${this.currentLang === 'en' ? colorModeInfo.titleEn : colorModeInfo.title}</strong>
+                <span style="color:#64748b; margin-left:8px;">${this.currentLang === 'en' ? chartSuggestion.tipEn : chartSuggestion.tip}</span>
             </div>
             ${isDualMode ? `
             <div class="dual-color-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">涨跌/正负配色</span>
+                <span class="section-title" style="font-size:12px; color:#64748b;">${t.dualColorSchemes || '涨跌/正负配色'}</span>
                 <div class="dual-scheme-list" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
                     ${dualSchemes.map((scheme, idx) => `
                         <div class="dual-scheme" data-dual="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px; display:flex; align-items:center; gap:6px;">
@@ -937,7 +1042,7 @@ class App {
             </div>
             ` : isGradientMode ? `
             <div class="gradient-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">渐变配色</span>
+                <span class="section-title" style="font-size:12px; color:#64748b;">${t.gradientColorSchemes || '渐变配色'}</span>
                 <div class="gradient-scheme-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
                     ${gradientSchemes.map((scheme, idx) => `
                         <div class="gradient-scheme" data-gradient="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px;">
@@ -1153,6 +1258,27 @@ class App {
             });
         });
 
+        // Bind color input sync (color picker <-> text input)
+        popup.querySelectorAll('.color-control').forEach(control => {
+            const colorInput = control.querySelector('input[type="color"]');
+            const textInput = control.querySelector('.color-text');
+
+            if (colorInput && textInput) {
+                // Sync color picker -> text input
+                colorInput.addEventListener('input', () => {
+                    textInput.value = colorInput.value;
+                });
+
+                // Sync text input -> color picker
+                textInput.addEventListener('input', () => {
+                    const value = textInput.value;
+                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        colorInput.value = value;
+                    }
+                });
+            }
+        });
+
         // Close button
         popup.querySelector('.close-options').onclick = () => popup.remove();
 
@@ -1178,6 +1304,27 @@ class App {
                 const key = select.dataset.key;
                 if (defaults[key] !== undefined) {
                     select.value = defaults[key];
+                }
+            });
+            // Reset color inputs
+            popup.querySelectorAll('input[type="color"]').forEach(input => {
+                const key = input.dataset.key;
+                if (defaults[key] !== undefined) {
+                    input.value = defaults[key];
+                    const textInput = input.parentElement.querySelector('.color-text');
+                    if (textInput) textInput.value = defaults[key];
+                }
+            });
+
+            // Reset number inputs
+            popup.querySelectorAll('input[type="number"]').forEach(input => {
+                const key = input.dataset.key;
+                // Axis options default is null, so we check if key exists in defaults
+                // We use hasOwnProperty or simple check if key is in defaults object
+                // Note: defaults object comes from getDefaults() which returns all keys defined
+                if (key in defaults) {
+                    const defVal = defaults[key];
+                    input.value = defVal === null ? '' : defVal;
                 }
             });
         };

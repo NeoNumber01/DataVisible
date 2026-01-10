@@ -12,6 +12,7 @@ class ChartRenderer {
         this.chartOptions = new Map(); // slot -> custom options
         this.showValues = new Map(); // slot -> boolean for showing data labels
         this.selectedColorScheme = new Map(); // slot -> selected color scheme key
+        this.zoomLevels = new Map(); // slot -> current zoom scale
         this.currentLayout = 1;
         this.data = null;
     }
@@ -22,7 +23,7 @@ class ChartRenderer {
      */
     init(data) {
         this.data = data;
-        this.renderChart(1, 'bar');
+        this.setLayout(1);
     }
 
     /**
@@ -50,6 +51,10 @@ class ChartRenderer {
         }
         // Clear per-series colors when applying a scheme
         this.seriesColors.delete(slot);
+        // Clear per-category colors when applying a scheme
+        if (this.categoryColors) {
+            this.categoryColors.delete(slot);
+        }
         const chartType = this.chartTypes.get(slot) || 'bar';
         this.renderChart(slot, chartType);
     }
@@ -71,6 +76,10 @@ class ChartRenderer {
         this.seriesColors.get(slot)[seriesIndex] = color;
         // Clear the scheme selection when applying individual colors
         this.selectedColorScheme.delete(slot);
+        // Clear category colors to avoid conflict (Column color mode)
+        if (this.categoryColors) {
+            this.categoryColors.delete(slot);
+        }
         const chartType = this.chartTypes.get(slot) || 'bar';
         this.renderChart(slot, chartType);
     }
@@ -95,6 +104,8 @@ class ChartRenderer {
         this.categoryColors.get(slot)[categoryIndex] = color;
         // Clear the scheme selection when applying individual colors
         this.selectedColorScheme.delete(slot);
+        // Clear series colors to avoid conflict (Row color mode)
+        this.seriesColors.delete(slot);
         const chartType = this.chartTypes.get(slot) || 'bar';
         this.renderChart(slot, chartType);
     }
@@ -140,6 +151,100 @@ class ChartRenderer {
      */
     getShowValues(slot) {
         return this.showValues.get(slot) || false;
+    }
+
+    /**
+     * Reset zoom for a specific slot
+     */
+    resetZoom(slot) {
+        if (!this.zoomLevels) this.zoomLevels = new Map();
+        this.zoomLevels.set(slot, 1);
+
+        const canvas = document.getElementById(`canvas-${slot}`);
+        const echartContainer = document.getElementById(`echart-${slot}`);
+        const wrapper = document.querySelector(`#chart-${slot} .chart-wrapper`);
+
+        // Reset CSS transform
+        const transform = 'scale(1)';
+        const origin = 'center top';
+
+        if (canvas) {
+            canvas.style.transform = transform;
+            canvas.style.transformOrigin = origin;
+        }
+        if (echartContainer) {
+            echartContainer.style.transform = transform;
+            echartContainer.style.transformOrigin = origin;
+        }
+
+        // Reset scrolling
+        if (wrapper) {
+            wrapper.style.overflow = 'hidden'; // Reset to hidden to avoid scrollbars at 1x
+            wrapper.scrollTop = 0;
+            wrapper.scrollLeft = 0;
+        }
+
+        // Also reset internal chart zoom for completeness (optional, but good for "Zoom Out Fully")
+        const chartInfo = this.charts.get(slot);
+        if (chartInfo) {
+            if (chartInfo.type === 'chartjs' && chartInfo.instance.resetZoom) {
+                chartInfo.instance.resetZoom();
+            } else if (chartInfo.type === 'echarts') {
+                // Use 'restore' action to reset chart to initial state
+                // This works for dataZoom, roam (graph/map), and other interactive states
+                chartInfo.instance.dispatchAction({
+                    type: 'restore'
+                });
+            }
+        }
+    }
+
+
+    /**
+     * Handle zoom in/out (Visual CSS Scale)
+     */
+    handleZoom(slot, type) {
+        if (!this.zoomLevels) this.zoomLevels = new Map();
+
+        let currentZoom = this.zoomLevels.get(slot) || 1;
+        const step = 0.1;
+
+        if (type === 'in') {
+            currentZoom += step;
+        } else {
+            currentZoom = Math.max(0.1, currentZoom - step); // Prevent going below 0.1
+        }
+
+        // Snap to 1.0 if close (limits precision errors)
+        if (Math.abs(currentZoom - 1) < 0.01) currentZoom = 1;
+
+        this.zoomLevels.set(slot, currentZoom);
+
+        const canvas = document.getElementById(`canvas-${slot}`);
+        const echartContainer = document.getElementById(`echart-${slot}`);
+        const wrapper = document.querySelector(`#chart-${slot} .chart-wrapper`);
+
+        // Apply CSS transform
+        const transform = `scale(${currentZoom})`;
+        const origin = 'center top'; // Scale from top center to keep position predictable
+
+        if (canvas) {
+            canvas.style.transform = transform;
+            canvas.style.transformOrigin = origin;
+        }
+        if (echartContainer) {
+            echartContainer.style.transform = transform;
+            echartContainer.style.transformOrigin = origin;
+        }
+
+        // Handle wrapper overflow
+        if (wrapper) {
+            if (currentZoom > 1) {
+                wrapper.style.overflow = 'auto'; // Enable scrolling when zoomed in
+            } else {
+                wrapper.style.overflow = 'hidden'; // Hide when zoomed out/normal
+            }
+        }
     }
 
     /**
@@ -352,6 +457,7 @@ class ChartRenderer {
         const seriesColors = this.seriesColors.get(slot) || {};
         const categoryColors = this.getCategoryColors(slot);
         const chartOptions = this.chartOptions.get(slot) || {};
+        const showValues = this.showValues.get(slot) || false;
 
         // Build render options for ECharts - merge custom colors with series/category colors
         let effectiveColors = customColors;
@@ -371,11 +477,12 @@ class ChartRenderer {
         // Use effective colors (prioritize explicit customColors if set)
         const colorsToUse = customColors || effectiveColors;
 
-        // Build render options object with colors and chart options
+        // Build render options object with colors, showValues, and chart options
         const renderOptions = {
             customColors: colorsToUse,
             seriesColors,
             categoryColors,
+            showValues: showValues,
             ...chartOptions
         };
 
@@ -485,15 +592,36 @@ class ChartRenderer {
     renderHtmlChart(container, chartType, slot) {
         let chart;
 
+        // Get custom colors and options
+        const customColors = this.customColors.get(slot);
+        const categoryColors = this.getCategoryColors(slot);
+        const chartOptions = this.chartOptions.get(slot) || {};
+        const showValues = this.showValues.get(slot) || false;
+
+        // Build effective colors from category colors if set (like ECharts rendering)
+        let effectiveColors = customColors;
+        if (Object.keys(categoryColors).length > 0) {
+            const defaultColors = BasicCharts.getColorPalette(this.data?.labels?.length || 10);
+            effectiveColors = defaultColors.map((c, i) => categoryColors[i] || c);
+        }
+
+        // Build render options
+        const renderOptions = {
+            customColors: effectiveColors || customColors,
+            categoryColors: categoryColors,
+            showValues: showValues,
+            ...chartOptions
+        };
+
         switch (chartType) {
             case 'metric':
-                chart = FinancialCharts.createMetricCards(container, this.data);
+                chart = FinancialCharts.createMetricCards(container, this.data, renderOptions);
                 break;
             case 'sparkline':
-                chart = FinancialCharts.createSparklines(container, this.data);
+                chart = FinancialCharts.createSparklines(container, this.data, renderOptions);
                 break;
             default:
-                chart = FinancialCharts.createMetricCards(container, this.data);
+                chart = FinancialCharts.createMetricCards(container, this.data, renderOptions);
         }
 
         this.charts.set(slot, { type: 'html', instance: chart });
@@ -638,6 +766,29 @@ class ChartRenderer {
                         <text x="12" y="15" font-size="6" text-anchor="middle" fill="currentColor">123</text>
                     </svg>
                 </button>
+                <button class="chart-action-btn zoom-btn" data-action="zoomin" title="${t.chartActionZoomIn || '放大'}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="11" y1="8" x2="11" y2="14"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                </button>
+                <button class="chart-action-btn zoom-btn" data-action="zoomout" title="${t.chartActionZoomOut || '缩小'}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                    </svg>
+                </button>
+                <button class="chart-action-btn reset-zoom-btn" data-action="resetzoom" title="${t.chartActionResetZoom || '重置缩放'}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        <line x1="8" y1="11" x2="14" y2="11"/>
+                        <path d="M 11 8 L 11 14 M 8 11 L 14 11" transform="rotate(45 11 11)"/>
+                    </svg>
+                </button>
                 <div class="chart-actions">
                     <button class="chart-action-btn" data-action="fullscreen" title="${t.fullscreen || '全屏'}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -685,6 +836,7 @@ class ChartRenderer {
             gauge: '仪表盘', wordcloud: '词云图', table: '数据表格',
             colorPicker: '颜色', fullscreen: '全屏', download: '下载',
             toggleValues: '显示/隐藏数值',
+            chartActionResetZoom: '重置缩放',
             seriesColors: '按系列设置颜色',
             series: '系列'
         };
@@ -817,15 +969,56 @@ class ChartRenderer {
     /**
      * Export chart with specified format
      */
-    exportChartWithFormat(slot, chartInfo, format, mimeType, quality, scale) {
+    /**
+     * Export chart with specified format
+     */
+    async exportChartWithFormat(slot, chartInfo, format, mimeType, quality, scale) {
         let dataUrl;
 
         try {
-            if (chartInfo.type === 'chartjs') {
+            // Check if it's an HTML-based chart (metric, sparkline) or a specialized chart without getDataURL (table)
+            const isHtmlChart = chartInfo.type === 'html' ||
+                (chartInfo.type === 'echarts' && !chartInfo.instance.getDataURL);
+
+            if (isHtmlChart) {
+                if (format === 'svg') {
+                    console.warn('SVG export not supported for HTML charts');
+                    if (window.app) {
+                        const t = window.app.getTranslations();
+                        window.app.showToast(t.svgNotSupported || '此图表不支持 SVG 导出', 'warning');
+                    }
+                    return;
+                }
+
+                if (!window.html2canvas) {
+                    console.error('html2canvas not loaded');
+                    if (window.app) {
+                        window.app.showToast('html2canvas library missing', 'error');
+                    }
+                    return;
+                }
+
+                const element = document.getElementById(`echart-${slot}`);
+
+                // Use html2canvas to capture the element
+                const canvas = await html2canvas(element, {
+                    scale: scale,
+                    useCORS: true,
+                    backgroundColor: (format === 'jpg' || format === 'jpeg') ? '#ffffff' : null,
+                    logging: false
+                });
+
+                dataUrl = canvas.toDataURL(mimeType, quality);
+
+            } else if (chartInfo.type === 'chartjs') {
                 const canvas = document.getElementById(`canvas-${slot}`);
 
                 if (format === 'svg') {
                     console.warn('SVG export not supported for Chart.js');
+                    if (window.app) {
+                        const t = window.app.getTranslations();
+                        window.app.showToast(t.svgNotSupported || '此图表不支持 SVG 导出', 'warning');
+                    }
                     return;
                 }
 

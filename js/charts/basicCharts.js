@@ -8,6 +8,13 @@ if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
+// Register Chart.js zoom plugin globally
+if (typeof ChartZoom !== 'undefined') {
+    Chart.register(ChartZoom);
+} else if (window.ChartZoom) {
+    Chart.register(window.ChartZoom);
+}
+
 const BasicCharts = {
     /**
      * Create a bar chart
@@ -15,9 +22,19 @@ const BasicCharts = {
     createBarChart(ctx, data, options = {}) {
         const showValues = options.showValues || false;
 
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: options.layoutPadding !== undefined ? options.layoutPadding : 20
+                }
+            },
             plugins: {
                 legend: {
                     position: 'top',
@@ -35,27 +52,45 @@ const BasicCharts = {
                 },
                 datalabels: {
                     display: showValues,
-                    color: '#333',
+                    color: labelColor,
                     anchor: 'end',
                     align: 'top',
                     offset: 4,
                     font: {
-                        weight: 'bold',
-                        size: 11
+                        weight: labelFontWeight,
+                        size: labelFontSize
                     },
                     formatter: (value) => value
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
                 x: {
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -65,7 +100,22 @@ const BasicCharts = {
             }
         };
 
-        const colors = this.getColorPalette(data.datasets.length);
+        // Support custom colors from options
+        const customColors = options.customColors;
+        // Support series colors from options
+        const seriesColors = options.seriesColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = this.getColorPalette(data.datasets.length);
+        }
+
+        // Apply series colors if set
+        if (Object.keys(seriesColors).length > 0) {
+            colors = colors.map((c, i) => seriesColors[i] || c);
+        }
 
         const chartData = {
             labels: data.labels,
@@ -94,6 +144,12 @@ const BasicCharts = {
      */
     createLineChart(ctx, data, options = {}) {
         const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -114,24 +170,42 @@ const BasicCharts = {
                 },
                 datalabels: {
                     display: showValues,
-                    color: '#333',
+                    color: labelColor,
                     anchor: 'end',
                     align: 'top',
                     offset: 4,
-                    font: { weight: 'bold', size: 11 },
+                    font: { weight: labelFontWeight, size: labelFontSize },
                     formatter: (value) => value
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
                 x: {
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -146,7 +220,20 @@ const BasicCharts = {
             }
         };
 
-        const colors = this.getColorPalette(data.datasets.length);
+        // Support custom colors from options
+        const customColors = options.customColors;
+        const seriesColors = options.seriesColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = this.getColorPalette(data.datasets.length);
+        }
+
+        if (Object.keys(seriesColors).length > 0) {
+            colors = colors.map((c, i) => seriesColors[i] || c);
+        }
 
         const chartData = {
             labels: data.labels,
@@ -178,6 +265,12 @@ const BasicCharts = {
      */
     createPieChart(ctx, data, options = {}) {
         const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -203,8 +296,8 @@ const BasicCharts = {
                 },
                 datalabels: {
                     display: showValues,
-                    color: '#fff',
-                    font: { weight: 'bold', size: 12 },
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
                     formatter: (value, context) => {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                         const percentage = ((value / total) * 100).toFixed(1);
@@ -222,7 +315,23 @@ const BasicCharts = {
 
         // Use first dataset for pie chart
         const dataset = data.datasets[0] || { data: [] };
-        const colors = this.getColorPalette(data.labels.length);
+
+        // Support custom colors from options
+        const customColors = options.customColors;
+        // Support category colors from options
+        const categoryColors = options.categoryColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = this.getColorPalette(data.labels.length);
+        }
+
+        // Apply category colors if set
+        if (Object.keys(categoryColors).length > 0) {
+            colors = colors.map((c, i) => categoryColors[i] || c);
+        }
 
         // Apply rotation option
         if (options.rotation !== undefined) {
@@ -252,6 +361,12 @@ const BasicCharts = {
      */
     createDoughnutChart(ctx, data, options = {}) {
         const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -278,8 +393,8 @@ const BasicCharts = {
                 },
                 datalabels: {
                     display: showValues,
-                    color: '#fff',
-                    font: { weight: 'bold', size: 12 },
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
                     formatter: (value, context) => {
                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                         const percentage = ((value / total) * 100).toFixed(1);
@@ -307,7 +422,22 @@ const BasicCharts = {
 
         // Use first dataset for doughnut chart
         const dataset = data.datasets[0] || { data: [] };
-        const colors = this.getColorPalette(data.labels.length);
+
+        // Support custom colors
+        const customColors = options.customColors;
+        const categoryColors = options.categoryColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = this.getColorPalette(data.labels.length);
+        }
+
+        // Apply category colors
+        if (Object.keys(categoryColors).length > 0) {
+            colors = colors.map((c, i) => categoryColors[i] || c);
+        }
 
         const chartData = {
             labels: data.labels,
@@ -328,22 +458,35 @@ const BasicCharts = {
     },
 
     /**
+     * Generate colors from a base set
+     * Repeats/extends colors to match the required count
+     */
+    generateColors(baseColors, count) {
+        if (!baseColors || baseColors.length === 0) {
+            return this.getColorPalette(count);
+        }
+
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            colors.push(baseColors[i % baseColors.length]);
+        }
+        return colors;
+    },
+
+    /**
      * Get color palette
+     * Updated to use ChartColorsConfig
      */
     getColorPalette(count) {
+        // Use global configuration if available, otherwise fallback
+        if (typeof ChartColorsConfig !== 'undefined') {
+            return ChartColorsConfig.getRecommendedColors('bar', count, 'default');
+        }
+
+        // Fallback if config is missing (safe default)
         const palette = [
-            '#6366f1', // Indigo
-            '#8b5cf6', // Purple
-            '#ec4899', // Pink
-            '#f43f5e', // Rose
-            '#f97316', // Orange
-            '#eab308', // Yellow
-            '#22c55e', // Green
-            '#14b8a6', // Teal
-            '#06b6d4', // Cyan
-            '#3b82f6', // Blue
-            '#a855f7', // Violet
-            '#d946ef'  // Fuchsia
+            '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316',
+            '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6'
         ];
 
         if (count <= palette.length) {
@@ -360,19 +503,96 @@ const BasicCharts = {
     },
 
     /**
-     * Convert hex to rgba
+     * Convert any color format to rgba
+     * Supports: hex (#RRGGBB, #RGB), rgb(), rgba(), hsl()
      */
-    hexToRgba(hex, alpha) {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    hexToRgba(color, alpha) {
+        // Handle null/undefined
+        if (!color) {
+            return `rgba(100, 100, 100, ${alpha})`;
+        }
+
+        // If already rgba format, adjust alpha
+        if (color.startsWith('rgba')) {
+            return color.replace(/[\d.]+\)$/, `${alpha})`);
+        }
+
+        // If rgb format, convert to rgba
+        if (color.startsWith('rgb(')) {
+            return color.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+        }
+
+        // Handle HSL format: hsl(h, s%, l%)
+        if (color.startsWith('hsl')) {
+            const match = color.match(/hsl\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*\)/);
+            if (match) {
+                const [, h, s, l] = match.map(Number);
+                const rgb = this.hslToRgb(h, s, l);
+                return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+            }
+            // Fallback if hsl parsing fails
+            return `rgba(100, 100, 100, ${alpha})`;
+        }
+
+        // Handle Hex format
+        if (color.startsWith('#')) {
+            let hex = color.slice(1);
+            // Support 3-character shorthand (#RGB -> #RRGGBB)
+            if (hex.length === 3) {
+                hex = hex.split('').map(c => c + c).join('');
+            }
+            const r = parseInt(hex.slice(0, 2), 16);
+            const g = parseInt(hex.slice(2, 4), 16);
+            const b = parseInt(hex.slice(4, 6), 16);
+            if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+
+        // Fallback: return gray with specified alpha
+        return `rgba(100, 100, 100, ${alpha})`;
+    },
+
+    /**
+     * Convert HSL to RGB
+     * @param {number} h - Hue (0-360)
+     * @param {number} s - Saturation (0-100)
+     * @param {number} l - Lightness (0-100)
+     * @returns {{r: number, g: number, b: number}}
+     */
+    hslToRgb(h, s, l) {
+        s /= 100;
+        l /= 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+
+        if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+        else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+        else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+        else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+        else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+
+        return {
+            r: Math.round((r + m) * 255),
+            g: Math.round((g + m) * 255),
+            b: Math.round((b + m) * 255)
+        };
     },
 
     /**
      * Create a rose/nightingale chart (南丁格尔玫瑰图)
      */
     createRoseChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -395,6 +615,16 @@ const BasicCharts = {
                             return `${context.label}: ${context.raw} (${percentage}%)`;
                         }
                     }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${percentage}%`;
+                    }
                 }
             },
             animation: {
@@ -406,9 +636,17 @@ const BasicCharts = {
         };
 
         const dataset = data.datasets[0] || { data: [] };
-        // Support category colors from options
+
+        // Support custom colors
+        const customColors = options.customColors;
         const categoryColors = options.categoryColors || {};
-        let colors = this.getColorPalette(data.labels.length);
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = this.getColorPalette(data.labels.length);
+        }
 
         // Apply category colors if set
         if (Object.keys(categoryColors).length > 0) {
@@ -437,9 +675,21 @@ const BasicCharts = {
      * Create a mixed/combo chart (组合图 - 柱状图+折线图)
      */
     createMixedChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: options.layoutPadding !== undefined ? options.layoutPadding : 20
+                }
+            },
             plugins: {
                 legend: {
                     position: 'top',
@@ -454,19 +704,46 @@ const BasicCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 4,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
                 x: {
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     beginAtZero: true,
                     position: 'left',
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 },
                 y1: {
@@ -484,8 +761,15 @@ const BasicCharts = {
         };
 
         // Support series colors from options
+        const customColors = options.customColors;
         const seriesColors = options.seriesColors || {};
-        let colors = this.getColorPalette(data.datasets.length);
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = this.getColorPalette(data.datasets.length);
+        }
 
         // Apply series colors if set
         if (Object.keys(seriesColors).length > 0) {
@@ -541,10 +825,22 @@ const BasicCharts = {
      * Create a horizontal bar chart (水平柱状图)
      */
     createHorizontalBarChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    right: options.layoutPadding !== undefined ? options.layoutPadding : 40
+                }
+            },
             plugins: {
                 legend: {
                     position: 'top',
@@ -559,6 +855,29 @@ const BasicCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'end',
+                    align: 'end',
+                    offset: 4,
+                    font: {
+                        weight: labelFontWeight,
+                        size: labelFontSize
+                    },
+                    formatter: (value) => value
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
@@ -566,12 +885,19 @@ const BasicCharts = {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined // Use yAxisStep for value axis (which is x here)
                     }
                 },
                 y: {
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined
                 }
             },
             animation: {
@@ -581,8 +907,15 @@ const BasicCharts = {
         };
 
         // Support series colors from options
+        const customColors = options.customColors;
         const seriesColors = options.seriesColors || {};
-        let colors = this.getColorPalette(data.datasets.length);
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = this.getColorPalette(data.datasets.length);
+        }
 
         // Apply series colors if set
         if (Object.keys(seriesColors).length > 0) {
@@ -596,15 +929,15 @@ const BasicCharts = {
                 data: ds.data,
                 backgroundColor: colors[i],
                 borderColor: colors[i],
-                borderWidth: 0,
-                borderRadius: 6,
-                barPercentage: 0.7,
-                categoryPercentage: 0.8
+                borderWidth: options.borderWidth !== undefined ? options.borderWidth : 0,
+                borderRadius: options.borderRadius !== undefined ? options.borderRadius : 6,
+                barPercentage: options.barPercentage !== undefined ? options.barPercentage : 0.7,
+                categoryPercentage: options.categoryPercentage !== undefined ? options.categoryPercentage : 0.8
             }))
         };
 
         return new Chart(ctx, {
-            type: 'bar',
+            type: 'bar', // Chart.js handles horizontal via indexAxis: 'y'
             data: chartData,
             options: { ...defaultOptions, ...options }
         });

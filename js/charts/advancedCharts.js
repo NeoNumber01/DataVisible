@@ -8,6 +8,12 @@ const AdvancedCharts = {
      * Create a scatter chart
      */
     createScatterChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -28,6 +34,26 @@ const AdvancedCharts = {
                             return `(${context.parsed.x}, ${context.parsed.y})`;
                         }
                     }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 4,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value.y
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
@@ -36,11 +62,18 @@ const AdvancedCharts = {
                     position: 'bottom',
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -52,7 +85,15 @@ const AdvancedCharts = {
 
         // Support series colors from options
         const seriesColors = options.seriesColors || {};
-        let colors = BasicCharts.getColorPalette(data.datasets.length);
+        const customColors = options.customColors;
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
+
         if (Object.keys(seriesColors).length > 0) {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
@@ -81,6 +122,12 @@ const AdvancedCharts = {
      * Create a bubble chart
      */
     createBubbleChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -102,17 +149,43 @@ const AdvancedCharts = {
                             return `x: ${p.x}, y: ${p.y}, size: ${p.r}`;
                         }
                     }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'center',
+                    align: 'center',
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value.y
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
                 x: {
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -124,7 +197,15 @@ const AdvancedCharts = {
 
         // Support series colors from options
         const seriesColors = options.seriesColors || {};
-        let colors = BasicCharts.getColorPalette(data.datasets.length);
+        const customColors = options.customColors;
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
+
         if (Object.keys(seriesColors).length > 0) {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
@@ -140,7 +221,8 @@ const AdvancedCharts = {
                 })),
                 backgroundColor: BasicCharts.hexToRgba(colors[i], 0.6),
                 borderColor: colors[i],
-                borderWidth: 2
+                borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
+                hoverRadius: options.hoverRadius !== undefined ? options.hoverRadius : 4
             }))
         };
 
@@ -155,6 +237,12 @@ const AdvancedCharts = {
      * Create a radar chart
      */
     createRadarChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -170,6 +258,15 @@ const AdvancedCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 4,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value
                 }
             },
             scales: {
@@ -185,6 +282,11 @@ const AdvancedCharts = {
                         font: {
                             size: 12
                         }
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -229,6 +331,12 @@ const AdvancedCharts = {
      * Create an area chart (filled line chart)
      */
     createAreaChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#333';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -246,18 +354,45 @@ const AdvancedCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'end',
+                    align: 'top',
+                    offset: 4,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
                 x: {
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -309,9 +444,20 @@ const AdvancedCharts = {
      * Create a stacked bar chart
      */
     createStackedChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: options.layoutPadding !== undefined ? options.layoutPadding : 20
+                }
+            },
             plugins: {
                 legend: {
                     position: 'top',
@@ -326,6 +472,25 @@ const AdvancedCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    anchor: 'center',
+                    align: 'center',
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value > 0 ? value : ''
+                },
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: false },
+                        pinch: { enabled: true },
+                        mode: 'xy'
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'xy'
+                    }
                 }
             },
             scales: {
@@ -333,13 +498,20 @@ const AdvancedCharts = {
                     stacked: true,
                     grid: {
                         display: false
-                    }
+                    },
+                    min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                    max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined
                 },
                 y: {
                     stacked: true,
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -379,6 +551,12 @@ const AdvancedCharts = {
      * Create a polar area chart
      */
     createPolarChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        // Data label styling options
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
         const defaultOptions = {
             responsive: true,
             maintainAspectRatio: false,
@@ -394,6 +572,12 @@ const AdvancedCharts = {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
                     padding: 12,
                     cornerRadius: 8
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value) => value
                 }
             },
             scales: {
@@ -401,6 +585,11 @@ const AdvancedCharts = {
                     beginAtZero: true,
                     grid: {
                         color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    ticks: {
+                        stepSize: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
                     }
                 }
             },
@@ -414,8 +603,16 @@ const AdvancedCharts = {
 
         const dataset = data.datasets[0] || { data: [] };
         // Support category colors from options
+        const customColors = options.customColors;
         const categoryColors = options.categoryColors || {};
-        let colors = BasicCharts.getColorPalette(data.labels.length);
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
+
         if (Object.keys(categoryColors).length > 0) {
             colors = colors.map((c, i) => categoryColors[i] || c);
         }
