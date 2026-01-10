@@ -63,6 +63,7 @@ const ChartOptions = {
 
         // Scatter Chart Options
         scatter: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 8, min: 2, max: 20, step: 1 },
             { key: 'pointHoverRadius', label: 'hoverSize', labelZh: '悬停大小', type: 'range', default: 10, min: 4, max: 25, step: 1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
@@ -70,6 +71,7 @@ const ChartOptions = {
 
         // Bubble Chart Options
         bubble: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'hoverRadius', label: 'hoverRadius', labelZh: '悬停放大', type: 'range', default: 4, min: 0, max: 10, step: 1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
         ],
@@ -98,12 +100,14 @@ const ChartOptions = {
 
         // Polar Area Chart Options
         polar: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 4, min: 0, max: 15, step: 1 }
         ],
 
         // Rose Chart Options
         rose: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 15, min: 0, max: 30, step: 2 }
         ],
@@ -124,6 +128,7 @@ const ChartOptions = {
 
         // Funnel Options (ECharts)
         funnel: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.85, min: 0.1, max: 1, step: 0.05 },
             { key: 'minSize', label: 'minSize', labelZh: '最小宽度 %', type: 'range', default: 10, min: 0, max: 50, step: 5 },
             { key: 'maxSize', label: 'maxSize', labelZh: '最大宽度 %', type: 'range', default: 100, min: 50, max: 100, step: 5 },
             { key: 'gap', label: 'gap', labelZh: '间距', type: 'range', default: 2, min: 0, max: 10, step: 1 },
@@ -146,6 +151,7 @@ const ChartOptions = {
 
         // Treemap Options (ECharts)
         treemap: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.9, min: 0.1, max: 1, step: 0.05 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'gapWidth', label: 'gapWidth', labelZh: '间距', type: 'range', default: 2, min: 0, max: 8, step: 1 },
             { key: 'labelFontSize', label: 'labelSize', labelZh: '标签字号', type: 'range', default: 14, min: 10, max: 24, step: 1 }
@@ -153,6 +159,7 @@ const ChartOptions = {
 
         // Boxplot Options (ECharts)
         boxplot: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.05 },
             { key: 'boxWidth', label: 'boxWidth', labelZh: '箱体宽度', type: 'range', default: 50, min: 20, max: 100, step: 5 }
         ],
 
@@ -315,6 +322,7 @@ const ChartOptions = {
 
         // Sunburst Options (ECharts)
         sunburst: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.85, min: 0.1, max: 1, step: 0.05 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
         ],
 

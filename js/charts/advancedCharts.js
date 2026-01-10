@@ -98,12 +98,15 @@ const AdvancedCharts = {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
 
+        // Apply fillOpacity option (default 0.6)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.6;
+
         // Convert standard data to scatter format
         const chartData = {
             datasets: data.datasets.map((ds, i) => ({
                 label: ds.label || `Dataset ${i + 1}`,
                 data: ds.data.map((y, idx) => ({ x: idx + 1, y: y })),
-                backgroundColor: BasicCharts.hexToRgba(colors[i], 0.6),
+                backgroundColor: BasicCharts.hexToRgba(colors[i], fillOpacity),
                 borderColor: colors[i],
                 borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
                 pointRadius: options.pointRadius !== undefined ? options.pointRadius : 8,
@@ -210,6 +213,9 @@ const AdvancedCharts = {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
 
+        // Apply fillOpacity option (default 0.6)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.6;
+
         // Convert standard data to bubble format
         const chartData = {
             datasets: data.datasets.map((ds, i) => ({
@@ -219,7 +225,7 @@ const AdvancedCharts = {
                     y: y,
                     r: Math.sqrt(y) * 2 + 5 // Size based on value
                 })),
-                backgroundColor: BasicCharts.hexToRgba(colors[i], 0.6),
+                backgroundColor: BasicCharts.hexToRgba(colors[i], fillOpacity),
                 borderColor: colors[i],
                 borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
                 hoverRadius: options.hoverRadius !== undefined ? options.hoverRadius : 4
@@ -298,7 +304,15 @@ const AdvancedCharts = {
 
         // Support series colors from options
         const seriesColors = options.seriesColors || {};
-        let colors = BasicCharts.getColorPalette(data.datasets.length);
+        const customColors = options.customColors;
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
+
         if (Object.keys(seriesColors).length > 0) {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
@@ -316,7 +330,8 @@ const AdvancedCharts = {
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 pointRadius: options.pointRadius !== undefined ? options.pointRadius : 4,
-                pointHoverRadius: options.pointRadius !== undefined ? options.pointRadius + 2 : 6
+                pointHoverRadius: options.pointRadius !== undefined ? options.pointRadius + 2 : 6,
+                tension: 0  // Force straight lines for radar chart, prevent accidental smoothing
             }))
         };
 
@@ -409,7 +424,15 @@ const AdvancedCharts = {
 
         // Support series colors from options
         const seriesColors = options.seriesColors || {};
-        let colors = BasicCharts.getColorPalette(data.datasets.length);
+        const customColors = options.customColors;
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
+
         if (Object.keys(seriesColors).length > 0) {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
@@ -523,7 +546,15 @@ const AdvancedCharts = {
 
         // Support series colors from options
         const seriesColors = options.seriesColors || {};
-        let colors = BasicCharts.getColorPalette(data.datasets.length);
+        const customColors = options.customColors;
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
+
         if (Object.keys(seriesColors).length > 0) {
             colors = colors.map((c, i) => seriesColors[i] || c);
         }
@@ -617,11 +648,14 @@ const AdvancedCharts = {
             colors = colors.map((c, i) => categoryColors[i] || c);
         }
 
+        // Apply fillOpacity option (default 0.6)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.6;
+
         const chartData = {
             labels: data.labels,
             datasets: [{
                 data: dataset.data,
-                backgroundColor: colors.map(c => BasicCharts.hexToRgba(c, 0.6)),
+                backgroundColor: colors.map(c => BasicCharts.hexToRgba(c, fillOpacity)),
                 borderColor: colors,
                 borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
                 hoverOffset: options.hoverOffset !== undefined ? options.hoverOffset : 4

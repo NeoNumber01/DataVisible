@@ -3,6 +3,24 @@
  * Initializes and coordinates all modules
  */
 
+/**
+ * Debounce utility function - prevents function from being called too frequently
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} Debounced function
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // Internationalization
 const i18n = {
     zh: {
@@ -144,6 +162,7 @@ const i18n = {
         webpDesc: '现代格式，高压缩比',
         svgDesc: '矢量图，可无限缩放',
         exportError: '导出失败',
+        svgNotSupported: '此图表不支持 SVG 导出',
         // Missing UI Translations
         layout1: '单图',
         layout2: '双图',
@@ -163,7 +182,15 @@ const i18n = {
         zoomOut: '缩小',
         chartActionResetZoom: '重置缩放',
         chartActionZoomIn: '放大',
-        chartActionZoomOut: '缩小'
+        chartActionZoomOut: '缩小',
+        // Data panel
+        fullscreenMode: '全屏模式',
+        exitFullscreen: '退出全屏',
+        // Data actions
+        clearData: '清空数据',
+        resetAll: '重置一切',
+        dataCleared: '数据已清空',
+        allReset: '已重置所有设置'
     },
 
     en: {
@@ -305,6 +332,7 @@ const i18n = {
         webpDesc: 'Modern format, high compression',
         svgDesc: 'Vector, infinitely scalable',
         exportError: 'Export failed',
+        svgNotSupported: 'SVG export not supported for this chart',
         // Missing UI Translations
         layout1: 'Single Chart',
         layout2: 'Double Chart',
@@ -324,7 +352,15 @@ const i18n = {
         zoomOut: 'Zoom Out',
         chartActionResetZoom: 'Reset Zoom',
         chartActionZoomIn: 'Zoom In',
-        chartActionZoomOut: 'Zoom Out'
+        chartActionZoomOut: 'Zoom Out',
+        // Data panel
+        fullscreenMode: 'Fullscreen Mode',
+        exitFullscreen: 'Exit Fullscreen',
+        // Data actions
+        clearData: 'Clear Data',
+        resetAll: 'Reset All',
+        dataCleared: 'Data cleared',
+        allReset: 'All settings reset'
     }
 };
 
@@ -344,16 +380,38 @@ class App {
         // Load saved preferences
         this.loadPreferences();
 
-        // Initialize with default data
-        const defaultData = this.dataManager.getDefaultData();
-        this.dataManager.setData(defaultData);
-        this.chartRenderer.init(defaultData);
+        // Try to restore saved data, or use default
+        let initialData;
+        const savedDataInfo = this.dataManager.loadFromStorage();
+
+        if (savedDataInfo && savedDataInfo.data) {
+            // Use saved data
+            initialData = savedDataInfo.data;
+            this.dataManager.currentData = initialData;
+            console.log('Restored saved data from localStorage');
+        } else {
+            // Use default data
+            initialData = this.dataManager.getDefaultData();
+            this.dataManager.setData(initialData);
+        }
+
+        this.chartRenderer.init(initialData);
+
+        // Load saved chart configurations
+        this.loadChartConfigurations();
 
         // Bind events
         this.bindEvents();
 
         // Apply language
         this.applyLanguage();
+
+        // Optimization: Save data immediately before page unload
+        // This ensures any pending debounced saves are flushed
+        window.addEventListener('beforeunload', () => {
+            this.dataManager.saveImmediately();
+            this.saveChartConfigurations();
+        });
 
         console.log('DataVisible initialized');
     }
@@ -375,6 +433,106 @@ class App {
     savePreferences() {
         localStorage.setItem('dv-theme', this.currentTheme);
         localStorage.setItem('dv-lang', this.currentLang);
+    }
+
+    /**
+     * Save chart configurations to localStorage
+     */
+    saveChartConfigurations() {
+        try {
+            const config = {
+                chartTypes: Object.fromEntries(this.chartRenderer.chartTypes),
+                customColors: Object.fromEntries(this.chartRenderer.customColors),
+                seriesColors: Object.fromEntries(this.chartRenderer.seriesColors),
+                chartOptions: Object.fromEntries(this.chartRenderer.chartOptions),
+                showValues: Object.fromEntries(this.chartRenderer.showValues),
+                selectedColorScheme: Object.fromEntries(this.chartRenderer.selectedColorScheme),
+                currentLayout: this.chartRenderer.currentLayout
+            };
+
+            // Handle categoryColors if it exists
+            if (this.chartRenderer.categoryColors) {
+                config.categoryColors = Object.fromEntries(this.chartRenderer.categoryColors);
+            }
+
+            localStorage.setItem('dv-chart-config', JSON.stringify(config));
+        } catch (e) {
+            console.warn('Failed to save chart configurations:', e);
+        }
+    }
+
+    /**
+     * Load chart configurations from localStorage
+     */
+    loadChartConfigurations() {
+        try {
+            const saved = localStorage.getItem('dv-chart-config');
+            if (!saved) return;
+
+            const config = JSON.parse(saved);
+
+            // Restore chart types
+            if (config.chartTypes) {
+                this.chartRenderer.chartTypes = new Map(Object.entries(config.chartTypes));
+            }
+
+            // Restore custom colors
+            if (config.customColors) {
+                this.chartRenderer.customColors = new Map(Object.entries(config.customColors));
+            }
+
+            // Restore series colors (need to convert string keys back to numbers)
+            if (config.seriesColors) {
+                this.chartRenderer.seriesColors = new Map(
+                    Object.entries(config.seriesColors).map(([k, v]) => [parseInt(k), v])
+                );
+            }
+
+            // Restore chart options
+            if (config.chartOptions) {
+                this.chartRenderer.chartOptions = new Map(
+                    Object.entries(config.chartOptions).map(([k, v]) => [parseInt(k), v])
+                );
+            }
+
+            // Restore show values
+            if (config.showValues) {
+                this.chartRenderer.showValues = new Map(
+                    Object.entries(config.showValues).map(([k, v]) => [parseInt(k), v])
+                );
+            }
+
+            // Restore selected color scheme
+            if (config.selectedColorScheme) {
+                this.chartRenderer.selectedColorScheme = new Map(
+                    Object.entries(config.selectedColorScheme).map(([k, v]) => [parseInt(k), v])
+                );
+            }
+
+            // Restore category colors
+            if (config.categoryColors) {
+                this.chartRenderer.categoryColors = new Map(
+                    Object.entries(config.categoryColors).map(([k, v]) => [parseInt(k), v])
+                );
+            }
+
+            // Restore layout
+            if (config.currentLayout) {
+                this.chartRenderer.currentLayout = config.currentLayout;
+            }
+
+            console.log('Restored chart configurations from localStorage');
+        } catch (e) {
+            console.warn('Failed to load chart configurations:', e);
+        }
+    }
+
+    /**
+     * Clear all saved data and configurations
+     */
+    clearAllStorage() {
+        this.dataManager.clearStorage();
+        localStorage.removeItem('dv-chart-config');
     }
 
     bindEvents() {
@@ -433,7 +591,7 @@ class App {
                 } else if (action === 'togglevalues') {
                     const isShowing = this.chartRenderer.toggleShowValues(slot);
                     const t = this.getTranslations();
-                    this.showToast(isShowing ? (t.valuesShown || '数值已显示') : (t.valuesHidden || '数值已隐藏'), 'success');
+                    this.showToast(isShowing ? t.valuesShown : t.valuesHidden, 'success');
                     // Toggle button visual state
                     actionBtn.classList.toggle('active', isShowing);
                 } else if (action === 'resetzoom') {
@@ -450,7 +608,17 @@ class App {
         // Data panel toggle
         document.getElementById('togglePanel')?.addEventListener('click', () => {
             document.body.classList.toggle('panel-collapsed');
-            document.querySelector('.data-panel')?.classList.toggle('collapsed');
+            const dataPanel = document.querySelector('.data-panel');
+            dataPanel?.classList.toggle('collapsed');
+
+            // Update arrow icon direction
+            const toggleBtn = document.getElementById('togglePanel');
+            const svg = toggleBtn?.querySelector('svg polyline');
+            if (svg) {
+                const isCollapsed = dataPanel?.classList.contains('collapsed');
+                // When collapsed, arrow points up (expand). When expanded, arrow points down (collapse).
+                svg.setAttribute('points', isCollapsed ? '6,15 12,9 18,15' : '6,9 12,15 18,9');
+            }
 
             // Trigger resize after transition to ensure charts fill the new space
             setTimeout(() => {
@@ -467,6 +635,9 @@ class App {
         document.getElementById('addRow')?.addEventListener('click', () => this.addTableRow());
         document.getElementById('addCol')?.addEventListener('click', () => this.addTableColumn());
         document.getElementById('clearTable')?.addEventListener('click', () => this.clearTable());
+
+        // Data panel fullscreen toggle
+        document.getElementById('fullscreenDataPanel')?.addEventListener('click', () => this.toggleDataPanelFullscreen());
 
         // Delete row buttons
         document.addEventListener('click', (e) => {
@@ -512,9 +683,11 @@ class App {
         // Apply and reset buttons
         document.getElementById('applyData')?.addEventListener('click', () => this.applyTableData());
         document.getElementById('resetData')?.addEventListener('click', () => this.resetData());
+        document.getElementById('clearData')?.addEventListener('click', () => this.clearData());
+        document.getElementById('resetAll')?.addEventListener('click', () => this.resetAll());
 
-        // Window resize
-        window.addEventListener('resize', () => this.chartRenderer.handleResize());
+        // Window resize with debounce to prevent excessive re-renders
+        window.addEventListener('resize', debounce(() => this.chartRenderer.handleResize(), 200));
 
         // Escape key to exit fullscreen
         document.addEventListener('keydown', (e) => {
@@ -570,6 +743,12 @@ class App {
 
         const resetText = document.querySelector('#resetData .btn-text');
         if (resetText) resetText.textContent = t.reset;
+
+        const clearDataText = document.querySelector('#clearData .btn-text');
+        if (clearDataText) clearDataText.textContent = t.clearData;
+
+        const resetAllText = document.querySelector('#resetAll .btn-text');
+        if (resetAllText) resetAllText.textContent = t.resetAll;
 
         const exportText = document.querySelector('#exportBtn .btn-text');
         if (exportText) exportText.textContent = t.export;
@@ -723,7 +902,7 @@ class App {
                     <option value="pictorial">${t.pictorial}</option>
                     <option value="liquid">${t.liquid}</option>
                 </optgroup>
-                <optgroup label="${t.financialCharts || '金融图表'}">
+                <optgroup label="${t.financialCharts}">
                     <option value="candlestick">${t.candlestick}</option>
                     <option value="effectScatter">${t.effectScatter}</option>
                     <option value="bullet">${t.bullet}</option>
@@ -734,7 +913,7 @@ class App {
                     <option value="metric">${t.metric}</option>
                     <option value="sparkline">${t.sparkline}</option>
                 </optgroup>
-                <optgroup label="${t.charts3D || '3D图表'}">
+                <optgroup label="${t.charts3D}">
                     <option value="bar3d">${t.bar3d}</option>
                     <option value="scatter3d">${t.scatter3d}</option>
                     <option value="surface3d">${t.surface3d}</option>
@@ -777,6 +956,50 @@ class App {
         btn.classList.add('active');
 
         this.chartRenderer.setLayout(layout);
+    }
+
+    /**
+     * Toggle data panel fullscreen mode
+     */
+    toggleDataPanelFullscreen() {
+        const dataPanel = document.querySelector('.data-panel');
+        const mainContainer = document.querySelector('.main-container');
+        const header = document.querySelector('.header');
+        const fullscreenBtn = document.getElementById('fullscreenDataPanel');
+
+        if (!dataPanel) return;
+
+        const isFullscreen = dataPanel.classList.toggle('fullscreen');
+
+        // Toggle main container and header visibility
+        if (mainContainer) {
+            mainContainer.style.display = isFullscreen ? 'none' : '';
+        }
+        if (header) {
+            header.style.display = isFullscreen ? 'none' : '';
+        }
+
+        // Update button icon
+        if (fullscreenBtn) {
+            const svg = fullscreenBtn.querySelector('svg');
+            if (svg) {
+                if (isFullscreen) {
+                    // Show exit fullscreen icon
+                    svg.innerHTML = '<path d="M4 14h6m0 0v6m0-6l-7 7m17-11h-6m0 0V4m0 6l7-7" />';
+                } else {
+                    // Show enter fullscreen icon
+                    svg.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />';
+                }
+            }
+        }
+
+        // Update button title
+        const t = i18n[this.currentLang];
+        if (fullscreenBtn) {
+            fullscreenBtn.title = isFullscreen
+                ? t.exitFullscreen
+                : t.fullscreenMode;
+        }
     }
 
     switchTab(e) {
@@ -908,7 +1131,137 @@ class App {
         const defaultData = this.dataManager.getDefaultData();
         this.dataManager.setData(defaultData);
         this.chartRenderer.setData(defaultData);
+
+        // Reset table UI to default state
+        this.resetTableToDefault();
+
+        // Clear JSON and CSV textareas
+        const jsonInput = document.getElementById('jsonInput');
+        const csvInput = document.getElementById('csvInput');
+        if (jsonInput) jsonInput.value = '';
+        if (csvInput) csvInput.value = '';
+
         this.showToast(i18n[this.currentLang].dataReset, 'success');
+    }
+
+    /**
+     * Clear all data - sets data to empty state
+     */
+    clearData() {
+        const emptyData = {
+            labels: [],
+            datasets: []
+        };
+        this.dataManager.setData(emptyData);
+        this.chartRenderer.setData(emptyData);
+
+        // Clear table inputs
+        const tbody = document.querySelector('#dataTable tbody');
+        if (tbody) {
+            tbody.innerHTML = '';
+        }
+
+        // Clear JSON and CSV textareas
+        const jsonInput = document.getElementById('jsonInput');
+        const csvInput = document.getElementById('csvInput');
+        if (jsonInput) jsonInput.value = '';
+        if (csvInput) csvInput.value = '';
+
+        const t = i18n[this.currentLang];
+        this.showToast(t.dataCleared, 'success');
+    }
+
+    /**
+     * Reset everything - data, colors, options, and all chart settings
+     */
+    resetAll() {
+        // Reset data to default
+        const defaultData = this.dataManager.getDefaultData();
+        this.dataManager.setData(defaultData);
+
+        // Clear all custom settings in chart renderer
+        this.chartRenderer.customColors.clear();
+        this.chartRenderer.seriesColors.clear();
+        this.chartRenderer.chartOptions.clear();
+        this.chartRenderer.showValues.clear();
+        this.chartRenderer.selectedColorScheme.clear();
+        this.chartRenderer.zoomLevels.clear();
+        if (this.chartRenderer.categoryColors) {
+            this.chartRenderer.categoryColors.clear();
+        }
+
+        // Reset data history
+        this.dataManager.dataHistory = [];
+
+        // Reset table to default state
+        this.resetTableToDefault();
+
+        // Clear JSON and CSV textareas
+        const jsonInput = document.getElementById('jsonInput');
+        const csvInput = document.getElementById('csvInput');
+        if (jsonInput) jsonInput.value = '';
+        if (csvInput) csvInput.value = '';
+
+        // Clear all saved data and configurations from localStorage
+        this.clearAllStorage();
+
+        // Re-render charts with default data
+        this.chartRenderer.setData(defaultData);
+
+        const t = i18n[this.currentLang];
+        this.showToast(t.allReset, 'success');
+    }
+
+    /**
+     * Reset table to default state
+     */
+    resetTableToDefault() {
+        const tbody = document.querySelector('#dataTable tbody');
+        if (!tbody) return;
+
+        const t = i18n[this.currentLang];
+
+        // Reset header
+        const headerInputs = document.querySelectorAll('#dataTable thead .header-input');
+        if (headerInputs.length >= 3) {
+            headerInputs[0].value = t.tableHeaderCategory;
+            headerInputs[1].value = t.tableHeaderValue1;
+            headerInputs[2].value = t.tableHeaderValue2;
+        }
+
+        // Reset body with default data
+        tbody.innerHTML = `
+            <tr>
+                <td><input type="text" value="A"></td>
+                <td><input type="number" value="30"></td>
+                <td><input type="number" value="45"></td>
+                <td class="action-col"><button class="delete-row-btn">×</button></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="B"></td>
+                <td><input type="number" value="50"></td>
+                <td><input type="number" value="35"></td>
+                <td class="action-col"><button class="delete-row-btn">×</button></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="C"></td>
+                <td><input type="number" value="40"></td>
+                <td><input type="number" value="60"></td>
+                <td class="action-col"><button class="delete-row-btn">×</button></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="D"></td>
+                <td><input type="number" value="70"></td>
+                <td><input type="number" value="25"></td>
+                <td class="action-col"><button class="delete-row-btn">×</button></td>
+            </tr>
+            <tr>
+                <td><input type="text" value="E"></td>
+                <td><input type="number" value="25"></td>
+                <td><input type="number" value="55"></td>
+                <td class="action-col"><button class="delete-row-btn">×</button></td>
+            </tr>
+        `;
     }
 
     showExportMenu() {
@@ -965,7 +1318,7 @@ class App {
         const t = this.getTranslations();
         const data = this.dataManager.getData();
         const seriesCount = data?.datasets?.length || 2;
-        const seriesNames = data?.datasets?.map((ds, i) => ds.label || `${t.series || '系列'} ${i + 1}`) || [];
+        const seriesNames = data?.datasets?.map((ds, i) => ds.label || `${t.series} ${i + 1}`) || [];
 
         // Get current series colors
         const currentSeriesColors = this.chartRenderer.getSeriesColors(slot);
@@ -1001,6 +1354,7 @@ class App {
         const dualSchemes = Object.entries(ChartColorsConfig.dualColorPresets).map(([key, preset]) => ({
             key: key,
             name: preset.name,
+            nameEn: preset.nameEn,
             positive: preset.positive,
             negative: preset.negative
         }));
@@ -1009,6 +1363,7 @@ class App {
         const gradientSchemes = Object.entries(ChartColorsConfig.gradientPresets).map(([key, preset]) => ({
             key: key,
             name: preset.name,
+            nameEn: preset.nameEn,
             colors: preset.colors
         }));
 
@@ -1020,7 +1375,7 @@ class App {
         popup.className = 'color-picker-popup';
         popup.innerHTML = `
             <div class="color-picker-header">
-                <span>${t.colorScheme || '配色方案'}</span>
+                <span>${t.colorScheme}</span>
                 <button class="close-picker">×</button>
             </div>
             <div class="color-mode-info" style="background:#f8fafc; padding:8px 12px; margin:-8px -12px 8px; border-radius:6px 6px 0 0; font-size:12px;">
@@ -1029,24 +1384,24 @@ class App {
             </div>
             ${isDualMode ? `
             <div class="dual-color-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">${t.dualColorSchemes || '涨跌/正负配色'}</span>
+                <span class="section-title" style="font-size:12px; color:#64748b;">${t.dualColorSchemes}</span>
                 <div class="dual-scheme-list" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
                     ${dualSchemes.map((scheme, idx) => `
                         <div class="dual-scheme" data-dual="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px; display:flex; align-items:center; gap:6px;">
                             <span class="color-dot" style="background:${scheme.positive}; width:12px; height:12px; border-radius:50%;"></span>
                             <span class="color-dot" style="background:${scheme.negative}; width:12px; height:12px; border-radius:50%;"></span>
-                            <span style="font-size:12px;">${scheme.name}</span>
+                            <span style="font-size:12px;">${this.currentLang === 'en' ? scheme.nameEn : scheme.name}</span>
                         </div>
                     `).join('')}
                 </div>
             </div>
             ` : isGradientMode ? `
             <div class="gradient-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">${t.gradientColorSchemes || '渐变配色'}</span>
+                <span class="section-title" style="font-size:12px; color:#64748b;">${t.gradientColorSchemes}</span>
                 <div class="gradient-scheme-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
                     ${gradientSchemes.map((scheme, idx) => `
                         <div class="gradient-scheme" data-gradient="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px;">
-                            <span style="font-size:12px; margin-bottom:4px; display:block;">${scheme.name}</span>
+                            <span style="font-size:12px; margin-bottom:4px; display:block;">${this.currentLang === 'en' ? scheme.nameEn : scheme.name}</span>
                             <div style="display:flex; height:16px; border-radius:4px; overflow:hidden;">
                                 ${scheme.colors.map(c => `<div style="flex:1; background:${c};"></div>`).join('')}
                             </div>
@@ -1068,7 +1423,7 @@ class App {
             `}
             ${isCategoryMode ? `
             <div class="category-colors">
-                <span class="section-title">${t.rowColors || '按类别设置颜色'}</span>
+                <span class="section-title">${t.rowColors}</span>
                 <div class="category-color-list">
                     ${categoryNames.map((name, i) => `
                         <div class="category-color-item" data-category="${i}">
@@ -1077,11 +1432,11 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply}</button>
             </div>
             ` : `
             <div class="series-colors">
-                <span class="section-title">${t.columnColors || '按列设置颜色（数据系列）'}</span>
+                <span class="section-title">${t.columnColors}</span>
                 <div class="series-color-list">
                     ${seriesNames.map((name, i) => `
                         <div class="series-color-item" data-series="${i}">
@@ -1090,10 +1445,10 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-series-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-series-colors">${t.apply}</button>
             </div>
             <div class="category-colors">
-                <span class="section-title">${t.rowColors || '按行设置颜色（数据类别）'}</span>
+                <span class="section-title">${t.rowColors}</span>
                 <div class="category-color-list">
                     ${categoryNames.map((name, i) => `
                         <div class="category-color-item" data-category="${i}">
@@ -1102,11 +1457,11 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply}</button>
             </div>
             `}
             <div class="color-picker-actions">
-                <button class="btn btn-sm btn-secondary reset-colors">${t.resetColors || '重置颜色'}</button>
+                <button class="btn btn-sm btn-secondary reset-colors">${t.resetColors}</button>
             </div>
         `;
 
@@ -1160,7 +1515,9 @@ class App {
                     const color = input.value;
                     this.chartRenderer.setSeriesColor(slot, seriesIndex, color);
                 });
-                this.showToast(t.colorsApplied || '配色已应用', 'success');
+                // Save configuration after applying series colors
+                this.saveChartConfigurations();
+                this.showToast(t.colorsApplied, 'success');
                 popup.remove();
             };
         }
@@ -1174,7 +1531,9 @@ class App {
                     const color = input.value;
                     this.chartRenderer.setCategoryColor(slot, categoryIndex, color);
                 });
-                this.showToast(t.colorsApplied || '配色已应用', 'success');
+                // Save configuration after applying category colors
+                this.saveChartConfigurations();
+                this.showToast(t.colorsApplied, 'success');
                 popup.remove();
             };
         }
@@ -1182,7 +1541,9 @@ class App {
         // Reset colors
         popup.querySelector('.reset-colors').onclick = () => {
             this.chartRenderer.clearCustomColors(slot);
-            this.showToast(t.colorsReset || '颜色已重置', 'success');
+            // Save configuration after resetting colors
+            this.saveChartConfigurations();
+            this.showToast(t.colorsReset, 'success');
             popup.remove();
         };
 
@@ -1207,7 +1568,9 @@ class App {
     applyColorScheme(slot, colors, schemeKey = null) {
         // Use the chartRenderer's setColors method with scheme key
         this.chartRenderer.setColors(slot, colors, schemeKey);
-        this.showToast(this.getTranslations().colorsApplied || '配色已应用', 'success');
+        // Save configuration after applying colors
+        this.saveChartConfigurations();
+        this.showToast(this.getTranslations().colorsApplied, 'success');
     }
 
 
@@ -1229,15 +1592,15 @@ class App {
         popup.className = 'chart-options-popup';
         popup.innerHTML = `
             <div class="options-panel-header">
-                <span>${t.chartSettings || '图表设置'}</span>
+                <span>${t.chartSettings}</span>
                 <button class="close-options">×</button>
             </div>
             <div class="options-panel-body">
-                ${optionsHTML || `<p style="color: var(--text-tertiary); text-align: center;">${t.noOptions || '此图表暂无可调选项'}</p>`}
+                ${optionsHTML || `<p style="color: var(--text-tertiary); text-align: center;">${t.noOptions}</p>`}
             </div>
             <div class="options-panel-footer">
-                <button class="btn-reset-options">${t.reset || '重置'}</button>
-                <button class="btn-apply-options">${t.apply || '应用'}</button>
+                <button class="btn-reset-options">${t.reset}</button>
+                <button class="btn-apply-options">${t.apply}</button>
             </div>
         `;
 
@@ -1333,7 +1696,9 @@ class App {
         popup.querySelector('.btn-apply-options').onclick = () => {
             const values = ChartOptions.parseValues(popup.querySelector('.options-panel-body'));
             this.chartRenderer.setOptions(slot, values);
-            this.showToast(t.optionsApplied || '设置已应用', 'success');
+            // Save configuration after applying options
+            this.saveChartConfigurations();
+            this.showToast(t.optionsApplied, 'success');
             popup.remove();
         };
 
@@ -1366,41 +1731,41 @@ class App {
         menu.className = 'export-format-menu';
         menu.innerHTML = `
             <div class="export-menu-header">
-                <span>${t.selectExportFormat || '选择导出格式'}</span>
+                <span>${t.selectExportFormat}</span>
                 <button class="close-export-menu">×</button>
             </div>
             <div class="export-formats">
                 <button class="export-format-btn" data-format="png" data-mime="image/png">
                     <span class="format-icon">🖼️</span>
                     <span class="format-name">PNG</span>
-                    <span class="format-desc">${t.pngDesc || '无损压缩，支持透明'}</span>
+                    <span class="format-desc">${t.pngDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="jpg" data-mime="image/jpeg">
                     <span class="format-icon">📷</span>
                     <span class="format-name">JPG / JPEG</span>
-                    <span class="format-desc">${t.jpgDesc || '有损压缩，文件更小'}</span>
+                    <span class="format-desc">${t.jpgDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="webp" data-mime="image/webp">
                     <span class="format-icon">🌐</span>
                     <span class="format-name">WebP</span>
-                    <span class="format-desc">${t.webpDesc || '现代格式，高压缩比'}</span>
+                    <span class="format-desc">${t.webpDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="svg" data-mime="image/svg+xml">
                     <span class="format-icon">📐</span>
                     <span class="format-name">SVG</span>
-                    <span class="format-desc">${t.svgDesc || '矢量图，可无限缩放'}</span>
+                    <span class="format-desc">${t.svgDesc}</span>
                 </button>
             </div>
             <div class="export-quality-section">
                 <label class="quality-label">
-                    <span>${t.exportQuality || '导出质量'}</span>
+                    <span>${t.exportQuality}</span>
                     <span class="quality-value">90%</span>
                 </label>
                 <input type="range" class="quality-slider" min="10" max="100" value="90" step="5">
             </div>
             <div class="export-scale-section">
                 <label class="scale-label">
-                    <span>${t.exportScale || '导出倍率'}</span>
+                    <span>${t.exportScale}</span>
                     <span class="scale-value">2x</span>
                 </label>
                 <input type="range" class="scale-slider" min="1" max="4" value="2" step="0.5">

@@ -76,6 +76,8 @@ class ChartRenderer {
         this.seriesColors.get(slot)[seriesIndex] = color;
         // Clear the scheme selection when applying individual colors
         this.selectedColorScheme.delete(slot);
+        // Clear customColors (preset schemes like gradient colors) to avoid conflict
+        this.customColors.delete(slot);
         // Clear category colors to avoid conflict (Column color mode)
         if (this.categoryColors) {
             this.categoryColors.delete(slot);
@@ -104,6 +106,8 @@ class ChartRenderer {
         this.categoryColors.get(slot)[categoryIndex] = color;
         // Clear the scheme selection when applying individual colors
         this.selectedColorScheme.delete(slot);
+        // Clear customColors (preset schemes like gradient colors) to avoid conflict
+        this.customColors.delete(slot);
         // Clear series colors to avoid conflict (Row color mode)
         this.seriesColors.delete(slot);
         const chartType = this.chartTypes.get(slot) || 'bar';
@@ -265,7 +269,45 @@ class ChartRenderer {
 
 
     /**
-     * Render a chart in a specific slot
+     * Check if chart can be updated in-place (optimization)
+     * Returns true if we can reuse existing chart instance
+     */
+    canUpdateInPlace(slot, newChartType) {
+        const chartInfo = this.charts.get(slot);
+        if (!chartInfo) return false;
+
+        const currentType = this.chartTypes.get(slot);
+        if (currentType !== newChartType) return false;
+
+        // Chart.js charts can be updated in place
+        if (chartInfo.type === 'chartjs') return true;
+
+        // ECharts charts can be updated in place
+        if (chartInfo.type === 'echarts' && chartInfo.instance) return true;
+
+        // HTML charts should be re-rendered
+        return false;
+    }
+
+    /**
+     * Get the library type for a chart type
+     */
+    getLibraryType(chartType) {
+        const echartsTypes = [
+            'boxplot', 'heatmap', 'funnel', 'treemap', 'sunburst', 'sankey', 'gauge', 'wordcloud', 'table',
+            'waterfall', 'timeline', 'graph', 'map', 'parallel', 'calendar', 'themeriver', 'pictorial', 'liquid',
+            'bar3d', 'scatter3d', 'surface3d', 'globe', 'line3d',
+            'candlestick', 'effectScatter', 'bullet', 'stepLine', 'histogram', 'tree', 'progress'
+        ];
+        const htmlTypes = ['metric', 'sparkline'];
+
+        if (htmlTypes.includes(chartType)) return 'html';
+        if (echartsTypes.includes(chartType)) return 'echarts';
+        return 'chartjs';
+    }
+
+    /**
+     * Render a chart in a specific slot (with incremental update optimization)
      */
     renderChart(slot, chartType) {
         const container = document.getElementById(`chart-${slot}`);
@@ -274,33 +316,40 @@ class ChartRenderer {
         const canvas = document.getElementById(`canvas-${slot}`);
         const echartContainer = document.getElementById(`echart-${slot}`);
 
-        // Destroy existing chart
-        this.destroyChart(slot);
-
         if (!this.data) {
             console.warn('No data available for chart rendering');
             return;
         }
 
-        // Determine which library to use
-        const useEcharts = [
-            'boxplot', 'heatmap', 'funnel', 'treemap', 'sunburst', 'sankey', 'gauge', 'wordcloud', 'table',
-            'waterfall', 'timeline', 'graph', 'map', 'parallel', 'calendar', 'themeriver', 'pictorial', 'liquid',
-            // 3D charts
-            'bar3d', 'scatter3d', 'surface3d', 'globe', 'line3d',
-            // Financial & Statistical charts
-            'candlestick', 'effectScatter', 'bullet', 'stepLine', 'histogram', 'tree', 'progress'
-        ].includes(chartType);
+        const libraryType = this.getLibraryType(chartType);
+        const canUpdate = this.canUpdateInPlace(slot, chartType);
 
-        // Special HTML-based charts (not canvas/echarts)
-        const useHtmlRender = ['metric', 'sparkline'].includes(chartType);
+        // Optimization: Try incremental update if possible
+        if (canUpdate) {
+            const chartInfo = this.charts.get(slot);
 
-        if (useHtmlRender) {
+            if (chartInfo.type === 'chartjs') {
+                // Update Chart.js chart in place
+                this.updateChartJSChart(chartInfo.instance, chartType, slot);
+            } else if (chartInfo.type === 'echarts') {
+                // Update ECharts chart in place
+                this.updateEchartsChart(chartInfo.instance, echartContainer, chartType, slot);
+            }
+
+            // Update type tracking
+            this.chartTypes.set(slot, chartType);
+            return;
+        }
+
+        // Full re-render if chart type changed or no existing chart
+        this.destroyChart(slot);
+
+        if (libraryType === 'html') {
             canvas.style.display = 'none';
             echartContainer.style.display = 'block';
             echartContainer.classList.add('active');
             this.renderHtmlChart(echartContainer, chartType, slot);
-        } else if (useEcharts) {
+        } else if (libraryType === 'echarts') {
             canvas.style.display = 'none';
             echartContainer.style.display = 'block';
             echartContainer.classList.add('active');
@@ -400,44 +449,11 @@ class ChartRenderer {
                 chart = BasicCharts.createBarChart(ctx, this.data, renderOptions);
         }
 
-        // Apply per-series colors (column colors) if set
-        if (Object.keys(seriesColors).length > 0 && chart && chart.data && chart.data.datasets) {
-            chart.data.datasets.forEach((dataset, index) => {
-                if (seriesColors[index]) {
-                    dataset.backgroundColor = seriesColors[index];
-                    dataset.borderColor = seriesColors[index];
-                }
-            });
-            chart.update();
-        }
+        // Note: seriesColors are already passed through renderOptions and applied with proper fillOpacity
+        // during chart creation. No need to override here as it would lose the transparency settings.
 
-        // Apply per-category colors (row colors) if set - this creates per-point colors
-        if (Object.keys(categoryColors).length > 0 && chart && chart.data && chart.data.datasets) {
-            const labelsCount = chart.data.labels ? chart.data.labels.length : 0;
-            const isPieType = ['pie', 'doughnut', 'polarArea'].includes(chart.config.type);
-
-            chart.data.datasets.forEach((dataset) => {
-                // For pie/doughnut charts, backgroundColor is already an array - update specific indices
-                if (isPieType && Array.isArray(dataset.backgroundColor)) {
-                    // Directly update the color at each category index
-                    for (let i = 0; i < labelsCount; i++) {
-                        if (categoryColors[i]) {
-                            dataset.backgroundColor[i] = categoryColors[i];
-                        }
-                    }
-                    dataset.borderColor = '#fff';
-                } else if (!Array.isArray(dataset.backgroundColor) || dataset.backgroundColor.length !== labelsCount) {
-                    // For bar/line charts, convert single color to array
-                    const currentColor = dataset.backgroundColor;
-                    const newColors = [];
-                    for (let i = 0; i < labelsCount; i++) {
-                        newColors.push(categoryColors[i] || currentColor);
-                    }
-                    dataset.backgroundColor = newColors;
-                }
-            });
-            chart.update();
-        }
+        // Note: categoryColors are already passed through renderOptions and applied with proper fillOpacity
+        // during chart creation. No need to override here as it would lose the transparency settings.
 
         // Restore original function
         if (originalGetPalette) {
@@ -445,6 +461,29 @@ class ChartRenderer {
         }
 
         this.charts.set(slot, { type: 'chartjs', instance: chart });
+    }
+
+    /**
+     * Update Chart.js chart by full re-render.
+     * Always destroys and recreates the chart to ensure all color, data, fillOpacity, and other options
+     * are correctly applied. This approach is simpler and more reliable than incremental updates.
+     */
+    updateChartJSChart(chart, chartType, slot) {
+        this.destroyChart(slot);
+        const canvas = document.getElementById(`canvas-${slot}`);
+        if (canvas) {
+            this.renderChartJSChart(canvas, chartType, slot);
+        }
+    }
+
+    /**
+     * Update ECharts chart by full re-render.
+     * Always destroys and recreates the chart to ensure all color, data, and option changes
+     * are correctly applied. This approach is simpler and more reliable than incremental updates.
+     */
+    updateEchartsChart(chart, container, chartType, slot) {
+        this.destroyChart(slot);
+        this.renderEchartsChart(container, chartType, slot);
     }
 
 
@@ -594,20 +633,30 @@ class ChartRenderer {
 
         // Get custom colors and options
         const customColors = this.customColors.get(slot);
+        const seriesColors = this.seriesColors.get(slot) || {};
         const categoryColors = this.getCategoryColors(slot);
         const chartOptions = this.chartOptions.get(slot) || {};
         const showValues = this.showValues.get(slot) || false;
 
-        // Build effective colors from category colors if set (like ECharts rendering)
+        // Build effective colors based on color mode (like ECharts rendering)
         let effectiveColors = customColors;
+
+        // If category colors are set, build a custom color array from them
         if (Object.keys(categoryColors).length > 0) {
             const defaultColors = BasicCharts.getColorPalette(this.data?.labels?.length || 10);
             effectiveColors = defaultColors.map((c, i) => categoryColors[i] || c);
         }
 
+        // If series colors are set and we have datasets, apply them (important for sparklines)
+        if (Object.keys(seriesColors).length > 0 && this.data?.datasets) {
+            const defaultColors = BasicCharts.getColorPalette(this.data.datasets.length);
+            effectiveColors = defaultColors.map((c, i) => seriesColors[i] || c);
+        }
+
         // Build render options
         const renderOptions = {
             customColors: effectiveColors || customColors,
+            seriesColors: seriesColors,
             categoryColors: categoryColors,
             showValues: showValues,
             ...chartOptions
@@ -705,7 +754,7 @@ class ChartRenderer {
                         <option value="line">${t.line}</option>
                         <option value="pie">${t.pie}</option>
                         <option value="doughnut">${t.doughnut}</option>
-                        <option value="horizontalBar">${t.horizontalBar || '水平柱状图'}</option>
+                        <option value="horizontalBar">${t.horizontalBar}</option>
                     </optgroup>
                     <optgroup label="${t.advancedCharts}">
                         <option value="scatter">${t.scatter}</option>
@@ -714,13 +763,13 @@ class ChartRenderer {
                         <option value="area">${t.area}</option>
                         <option value="stacked">${t.stacked}</option>
                         <option value="polar">${t.polar}</option>
-                        <option value="rose">${t.rose || '玫瑰图'}</option>
-                        <option value="mixed">${t.mixed || '组合图'}</option>
+                        <option value="rose">${t.rose}</option>
+                        <option value="mixed">${t.mixed}</option>
                     </optgroup>
                     <optgroup label="${t.distributionCharts}">
                         <option value="boxplot">${t.boxplot}</option>
                         <option value="heatmap">${t.heatmap}</option>
-                        <option value="calendar">${t.calendar || '日历热力图'}</option>
+                        <option value="calendar">${t.calendar}</option>
                     </optgroup>
                     <optgroup label="${t.hierarchyCharts}">
                         <option value="treemap">${t.treemap}</option>
@@ -732,16 +781,16 @@ class ChartRenderer {
                         <option value="gauge">${t.gauge}</option>
                         <option value="wordcloud">${t.wordcloud}</option>
                         <option value="table">${t.table}</option>
-                        <option value="waterfall">${t.waterfall || '瀑布图'}</option>
-                        <option value="timeline">${t.timeline || '时间轴图'}</option>
-                        <option value="graph">${t.graph || '关系图'}</option>
-                        <option value="parallel">${t.parallel || '平行坐标'}</option>
-                        <option value="themeriver">${t.themeriver || '河流图'}</option>
-                        <option value="pictorial">${t.pictorial || '象形柱图'}</option>
-                        <option value="liquid">${t.liquid || '水球图'}</option>
+                        <option value="waterfall">${t.waterfall}</option>
+                        <option value="timeline">${t.timeline}</option>
+                        <option value="graph">${t.graph}</option>
+                        <option value="parallel">${t.parallel}</option>
+                        <option value="themeriver">${t.themeriver}</option>
+                        <option value="pictorial">${t.pictorial}</option>
+                        <option value="liquid">${t.liquid}</option>
                     </optgroup>
                 </select>
-                <button class="chart-action-btn color-picker-btn" data-action="colorpicker" title="${t.colorPicker || '颜色'}">
+                <button class="chart-action-btn color-picker-btn" data-action="colorpicker" title="${t.colorPicker}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 2a10 10 0 0 0 0 20 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h1a2 2 0 0 0 2-2 10 10 0 0 0-7-13z"/>
@@ -751,13 +800,13 @@ class ChartRenderer {
                         <circle cx="9" cy="13" r="1.5" fill="currentColor"/>
                     </svg>
                 </button>
-                <button class="chart-action-btn settings-btn" data-action="settings" title="${t.chartSettings || '图表设置'}">
+                <button class="chart-action-btn settings-btn" data-action="settings" title="${t.chartSettings}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
                 </button>
-                <button class="chart-action-btn toggle-values-btn" data-action="togglevalues" title="${t.toggleValues || '显示/隐藏数值'}">
+                <button class="chart-action-btn toggle-values-btn" data-action="togglevalues" title="${t.toggleValues}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M7 20h10"/>
                         <path d="M10 20c5.5-2.5 6.5-9 3.5-13"/>
@@ -766,7 +815,7 @@ class ChartRenderer {
                         <text x="12" y="15" font-size="6" text-anchor="middle" fill="currentColor">123</text>
                     </svg>
                 </button>
-                <button class="chart-action-btn zoom-btn" data-action="zoomin" title="${t.chartActionZoomIn || '放大'}">
+                <button class="chart-action-btn zoom-btn" data-action="zoomin" title="${t.chartActionZoomIn}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -774,14 +823,14 @@ class ChartRenderer {
                         <line x1="8" y1="11" x2="14" y2="11"/>
                     </svg>
                 </button>
-                <button class="chart-action-btn zoom-btn" data-action="zoomout" title="${t.chartActionZoomOut || '缩小'}">
+                <button class="chart-action-btn zoom-btn" data-action="zoomout" title="${t.chartActionZoomOut}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         <line x1="8" y1="11" x2="14" y2="11"/>
                     </svg>
                 </button>
-                <button class="chart-action-btn reset-zoom-btn" data-action="resetzoom" title="${t.chartActionResetZoom || '重置缩放'}">
+                <button class="chart-action-btn reset-zoom-btn" data-action="resetzoom" title="${t.chartActionResetZoom}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -790,12 +839,12 @@ class ChartRenderer {
                     </svg>
                 </button>
                 <div class="chart-actions">
-                    <button class="chart-action-btn" data-action="fullscreen" title="${t.fullscreen || '全屏'}">
+                    <button class="chart-action-btn" data-action="fullscreen" title="${t.fullscreen}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
                         </svg>
                     </button>
-                    <button class="chart-action-btn" data-action="download" title="${t.download || '下载'}">
+                    <button class="chart-action-btn" data-action="download" title="${t.download}">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="7,10 12,15 17,10"/>
@@ -823,22 +872,39 @@ class ChartRenderer {
      */
     getDefaultTranslations() {
         return {
-            basicCharts: '基础图表',
-            advancedCharts: '高级图表',
-            distributionCharts: '分布图表',
-            hierarchyCharts: '层级图表',
-            specialCharts: '特殊图表',
-            bar: '柱状图', line: '折线图', pie: '饼图', doughnut: '环形图',
-            scatter: '散点图', bubble: '气泡图', radar: '雷达图',
-            area: '面积图', stacked: '堆叠图', polar: '极坐标图',
-            boxplot: '箱线图', heatmap: '热力图',
-            treemap: '树状图', sunburst: '旭日图', sankey: '桑基图', funnel: '漏斗图',
-            gauge: '仪表盘', wordcloud: '词云图', table: '数据表格',
-            colorPicker: '颜色', fullscreen: '全屏', download: '下载',
-            toggleValues: '显示/隐藏数值',
-            chartActionResetZoom: '重置缩放',
-            seriesColors: '按系列设置颜色',
-            series: '系列'
+            basicCharts: 'Basic Charts',
+            advancedCharts: 'Advanced Charts',
+            distributionCharts: 'Distribution Charts',
+            hierarchyCharts: 'Hierarchy Charts',
+            specialCharts: 'Special Charts',
+            bar: 'Bar Chart', line: 'Line Chart', pie: 'Pie Chart', doughnut: 'Doughnut Chart',
+            horizontalBar: 'Horizontal Bar',
+            scatter: 'Scatter Chart', bubble: 'Bubble Chart', radar: 'Radar Chart',
+            area: 'Area Chart', stacked: 'Stacked Chart', polar: 'Polar Area',
+            rose: 'Rose Chart', mixed: 'Mixed Chart',
+            boxplot: 'Box Plot', heatmap: 'Heatmap', calendar: 'Calendar Heatmap',
+            treemap: 'Treemap', sunburst: 'Sunburst', sankey: 'Sankey Diagram', funnel: 'Funnel Chart',
+            gauge: 'Gauge', wordcloud: 'Word Cloud', table: 'Data Table',
+            waterfall: 'Waterfall', timeline: 'Timeline', graph: 'Graph',
+            parallel: 'Parallel', themeriver: 'Theme River', pictorial: 'Pictorial Bar', liquid: 'Liquid',
+            colorPicker: 'Color', fullscreen: 'Fullscreen', download: 'Download',
+            toggleValues: 'Show/Hide Values',
+            chartSettings: 'Chart Settings',
+            chartActionResetZoom: 'Reset Zoom',
+            chartActionZoomIn: 'Zoom In',
+            chartActionZoomOut: 'Zoom Out',
+            seriesColors: 'Colors by Series',
+            series: 'Series',
+            selectExportFormat: 'Select Export Format',
+            pngDesc: 'Lossless, supports transparency',
+            jpgDesc: 'Lossy, smaller file size',
+            webpDesc: 'Modern format, high compression',
+            svgDesc: 'Vector, infinitely scalable',
+            exportQuality: 'Export Quality',
+            exportScale: 'Export Scale',
+            exportSuccess: 'Export successful',
+            exportError: 'Export failed',
+            svgNotSupported: 'SVG export not supported for this chart'
         };
     }
 
@@ -874,43 +940,43 @@ class ChartRenderer {
         menu.className = 'export-format-menu';
         menu.innerHTML = `
             <div class="export-menu-header">
-                <span>${t.selectExportFormat || '选择导出格式'}</span>
+                <span>${t.selectExportFormat}</span>
                 <button class="close-export-menu">×</button>
             </div>
             <div class="export-formats">
                 <button class="export-format-btn" data-format="png" data-mime="image/png">
                     <span class="format-icon">🖼️</span>
                     <span class="format-name">PNG</span>
-                    <span class="format-desc">${t.pngDesc || '无损压缩，支持透明'}</span>
+                    <span class="format-desc">${t.pngDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="jpg" data-mime="image/jpeg">
                     <span class="format-icon">📷</span>
                     <span class="format-name">JPG / JPEG</span>
-                    <span class="format-desc">${t.jpgDesc || '有损压缩，文件更小'}</span>
+                    <span class="format-desc">${t.jpgDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="webp" data-mime="image/webp">
                     <span class="format-icon">🌐</span>
                     <span class="format-name">WebP</span>
-                    <span class="format-desc">${t.webpDesc || '现代格式，高压缩比'}</span>
+                    <span class="format-desc">${t.webpDesc}</span>
                 </button>
                 ${chartInfo.type === 'echarts' ? `
                 <button class="export-format-btn" data-format="svg" data-mime="image/svg+xml">
                     <span class="format-icon">📐</span>
                     <span class="format-name">SVG</span>
-                    <span class="format-desc">${t.svgDesc || '矢量图，可无限缩放'}</span>
+                    <span class="format-desc">${t.svgDesc}</span>
                 </button>
                 ` : ''}
             </div>
             <div class="export-quality-section">
                 <label class="quality-label">
-                    <span>${t.exportQuality || '导出质量'}</span>
+                    <span>${t.exportQuality}</span>
                     <span class="quality-value">90%</span>
                 </label>
                 <input type="range" class="quality-slider" min="10" max="100" value="90" step="5">
             </div>
             <div class="export-scale-section">
                 <label class="scale-label">
-                    <span>${t.exportScale || '导出倍率'}</span>
+                    <span>${t.exportScale}</span>
                     <span class="scale-value">2x</span>
                 </label>
                 <input type="range" class="scale-slider" min="1" max="4" value="2" step="0.5">
@@ -1018,7 +1084,7 @@ class ChartRenderer {
                     console.warn('SVG export not supported for HTML charts');
                     if (window.app) {
                         const t = window.app.getTranslations();
-                        window.app.showToast(t.svgNotSupported || '此图表不支持 SVG 导出', 'warning');
+                        window.app.showToast(t.svgNotSupported, 'warning');
                     }
                     return;
                 }
@@ -1050,7 +1116,7 @@ class ChartRenderer {
                     console.warn('SVG export not supported for Chart.js');
                     if (window.app) {
                         const t = window.app.getTranslations();
-                        window.app.showToast(t.svgNotSupported || '此图表不支持 SVG 导出', 'warning');
+                        window.app.showToast(t.svgNotSupported, 'warning');
                     }
                     return;
                 }
@@ -1115,13 +1181,13 @@ class ChartRenderer {
             // Show success message
             if (window.app) {
                 const t = window.app.getTranslations();
-                window.app.showToast(t.exportSuccess || '导出成功', 'success');
+                window.app.showToast(t.exportSuccess, 'success');
             }
         } catch (error) {
             console.error('Export failed:', error);
             if (window.app) {
                 const t = window.app.getTranslations();
-                window.app.showToast(t.exportError || '导出失败', 'error');
+                window.app.showToast(t.exportError, 'error');
             }
         }
     }

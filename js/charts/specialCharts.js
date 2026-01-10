@@ -84,7 +84,7 @@ const SpecialCharts = {
                 textStyle: { color: '#fff' }
             },
             legend: {
-                data: ['增加', '减少', '总计']
+                data: ['Increase', 'Decrease', 'Total']
             },
             grid: {
                 left: '10%',
@@ -118,7 +118,7 @@ const SpecialCharts = {
             ],
             series: [
                 {
-                    name: '辅助',
+                    name: 'Helper',
                     type: 'bar',
                     stack: 'Total',
                     itemStyle: {
@@ -134,7 +134,7 @@ const SpecialCharts = {
                     data: totalData
                 },
                 {
-                    name: '增加',
+                    name: 'Increase',
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
@@ -143,7 +143,7 @@ const SpecialCharts = {
                     data: positiveData
                 },
                 {
-                    name: '减少',
+                    name: 'Decrease',
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
@@ -489,7 +489,9 @@ const SpecialCharts = {
                 itemStyle: {
                     color: function (params) {
                         const customColors = Array.isArray(options) ? options : options?.customColors;
-                        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+                        const colors = (customColors && customColors.length > 0)
+                            ? BasicCharts.generateColors(customColors, data.labels.length)
+                            : BasicCharts.getColorPalette(data.labels.length);
                         return colors[params.dataIndex % colors.length];
                     }
                 }
@@ -502,7 +504,7 @@ const SpecialCharts = {
             option.yAxis = { type: 'value' };
             option.visualMap = undefined;
             option.title = {
-                text: '地图数据（需加载地图资源）',
+                text: 'Map Data (geo resource required)',
                 left: 'center',
                 textStyle: { color: '#999', fontSize: 14 }
             };
@@ -707,10 +709,10 @@ const SpecialCharts = {
                 yearLabel: { show: true },
                 dayLabel: {
                     firstDay: 1,
-                    nameMap: ['日', '一', '二', '三', '四', '五', '六']
+                    nameMap: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
                 },
                 monthLabel: {
-                    nameMap: 'cn'
+                    nameMap: 'en'
                 }
             },
             series: [{
@@ -853,7 +855,12 @@ const SpecialCharts = {
         const labelFontWeight = options.labelFontWeight || 'bold';
         const labelColor = options.labelColor || '#333';
 
-        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
 
         const option = {
             tooltip: {

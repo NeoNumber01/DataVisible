@@ -82,7 +82,7 @@ const FinancialCharts = {
                 textStyle: { color: '#fff' }
             },
             legend: {
-                data: ['K线', `MA${maPeriod1}`, `MA${maPeriod2}`]
+                data: ['Candlestick', `MA${maPeriod1}`, `MA${maPeriod2}`]
             },
             grid: {
                 left: '10%',
@@ -119,7 +119,7 @@ const FinancialCharts = {
             ],
             series: [
                 {
-                    name: 'K线',
+                    name: 'Candlestick',
                     type: 'candlestick',
                     data: ohlcData,
                     label: {
@@ -311,7 +311,7 @@ const FinancialCharts = {
                 textStyle: { color: '#fff' }
             },
             legend: {
-                data: ['实际值', '目标值']
+                data: ['Actual', 'Target']
             },
             grid: {
                 left: '15%',
@@ -348,7 +348,7 @@ const FinancialCharts = {
             ],
             series: [
                 {
-                    name: '目标值',
+                    name: 'Target',
                     type: 'bar',
                     barWidth: targetWidth,
                     z: 1,
@@ -358,7 +358,7 @@ const FinancialCharts = {
                     }
                 },
                 {
-                    name: '实际值',
+                    name: 'Actual',
                     type: 'bar',
                     barWidth: barWidth,
                     z: 2,
@@ -529,7 +529,7 @@ const FinancialCharts = {
                 borderWidth: 0,
                 textStyle: { color: '#fff' },
                 formatter: function (params) {
-                    return `${params[0].name}<br/>频数: ${params[0].value}`;
+                    return `${params[0].name}<br/>Frequency: ${params[0].value}`;
                 }
             },
             grid: {
@@ -545,7 +545,7 @@ const FinancialCharts = {
             },
             yAxis: {
                 type: 'value',
-                name: '频数',
+                name: 'Frequency',
                 axisLine: { show: false },
                 splitLine: { lineStyle: { color: '#eee' } },
                 min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
@@ -900,7 +900,13 @@ const FinancialCharts = {
             overflow-y: auto;
         `;
 
-        const colors = customColors || BasicCharts.getColorPalette(data.datasets.length);
+        // Get colors with proper fallback like other charts
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.datasets.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.datasets.length);
+        }
 
         data.datasets.forEach((ds, i) => {
             const row = document.createElement('div');

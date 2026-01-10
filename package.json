@@ -1,0 +1,21 @@
+{
+  "name": "datavisible",
+  "version": "1.0.0",
+  "description": "DataVisible - 数据可视化平台",
+  "author": "Shu Leo",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  }
+}
