@@ -1348,6 +1348,159 @@ class App {
         }, 100);
     }
 
+    /**
+     * Show export menu for the global export button
+     * Exports all visible charts
+     */
+    showExportMenu() {
+        // Remove existing menu
+        document.querySelector('.export-format-menu')?.remove();
+
+        const exportBtn = document.getElementById('exportBtn');
+        if (!exportBtn) return;
+
+        const rect = exportBtn.getBoundingClientRect();
+        const t = this.getTranslations();
+
+        const menu = document.createElement('div');
+        menu.className = 'export-format-menu';
+        menu.innerHTML = `
+            <div class="export-menu-header">
+                <span>${t.selectExportFormat || '选择导出格式'}</span>
+                <button class="close-export-menu">×</button>
+            </div>
+            <div class="export-formats">
+                <button class="export-format-btn" data-format="png" data-mime="image/png">
+                    <span class="format-icon">🖼️</span>
+                    <span class="format-name">PNG</span>
+                    <span class="format-desc">${t.pngDesc || '无损压缩，支持透明'}</span>
+                </button>
+                <button class="export-format-btn" data-format="jpg" data-mime="image/jpeg">
+                    <span class="format-icon">📷</span>
+                    <span class="format-name">JPG / JPEG</span>
+                    <span class="format-desc">${t.jpgDesc || '有损压缩，文件更小'}</span>
+                </button>
+                <button class="export-format-btn" data-format="webp" data-mime="image/webp">
+                    <span class="format-icon">🌐</span>
+                    <span class="format-name">WebP</span>
+                    <span class="format-desc">${t.webpDesc || '现代格式，高压缩比'}</span>
+                </button>
+                <button class="export-format-btn" data-format="svg" data-mime="image/svg+xml">
+                    <span class="format-icon">📐</span>
+                    <span class="format-name">SVG</span>
+                    <span class="format-desc">${t.svgDesc || '矢量图，可无限缩放'}</span>
+                </button>
+            </div>
+            <div class="export-quality-section">
+                <label class="quality-label">
+                    <span>${t.exportQuality || '导出质量'}</span>
+                    <span class="quality-value">90%</span>
+                </label>
+                <input type="range" class="quality-slider" min="10" max="100" value="90" step="5">
+            </div>
+            <div class="export-scale-section">
+                <label class="scale-label">
+                    <span>${t.exportScale || '导出倍率'}</span>
+                    <span class="scale-value">2x</span>
+                </label>
+                <input type="range" class="scale-slider" min="1" max="4" value="2" step="0.5">
+            </div>
+        `;
+
+        // Position menu with boundary checks
+        menu.style.position = 'fixed';
+        menu.style.zIndex = '2000';
+
+        document.body.appendChild(menu);
+
+        // Calculate position after appending to get actual dimensions
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate initial left position (align right edge with button)
+        let leftPos = rect.right - menuWidth;
+
+        // Ensure menu doesn't go off the right edge
+        if (leftPos + menuWidth > viewportWidth - 10) {
+            leftPos = viewportWidth - menuWidth - 10;
+        }
+
+        // Ensure menu doesn't go off the left edge
+        if (leftPos < 10) {
+            leftPos = 10;
+        }
+
+        // Calculate top position
+        let topPos = rect.bottom + 8;
+
+        // If menu would go off bottom, show above the button
+        if (topPos + menuHeight > viewportHeight - 10) {
+            topPos = rect.top - menuHeight - 8;
+        }
+
+        // Ensure menu doesn't go off top edge
+        if (topPos < 10) {
+            topPos = 10;
+        }
+
+        menu.style.top = `${topPos}px`;
+        menu.style.left = `${leftPos}px`;
+
+        // Event handlers
+        menu.querySelector('.close-export-menu').onclick = () => menu.remove();
+
+        // Quality slider
+        const qualitySlider = menu.querySelector('.quality-slider');
+        const qualityValue = menu.querySelector('.quality-value');
+        qualitySlider.addEventListener('input', () => {
+            qualityValue.textContent = `${qualitySlider.value}%`;
+        });
+
+        // Scale slider
+        const scaleSlider = menu.querySelector('.scale-slider');
+        const scaleValue = menu.querySelector('.scale-value');
+        scaleSlider.addEventListener('input', () => {
+            scaleValue.textContent = `${scaleSlider.value}x`;
+        });
+
+        // Format buttons - export all visible charts
+        menu.querySelectorAll('.export-format-btn').forEach(btn => {
+            btn.onclick = () => {
+                const format = btn.dataset.format;
+                const quality = parseInt(qualitySlider.value) / 100;
+                const scale = parseFloat(scaleSlider.value);
+
+                // Export all visible charts
+                for (let i = 1; i <= this.chartRenderer.currentLayout; i++) {
+                    const chartInfo = this.chartRenderer.charts.get(i);
+                    if (chartInfo) {
+                        this.chartRenderer.exportChartWithFormat(
+                            i,
+                            chartInfo,
+                            format,
+                            btn.dataset.mime,
+                            quality,
+                            scale
+                        );
+                    }
+                }
+                menu.remove();
+            };
+        });
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeMenu(e) {
+                if (!menu.contains(e.target) && e.target !== exportBtn && !exportBtn.contains(e.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            });
+        }, 100);
+    }
+
     showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         if (!container) return;

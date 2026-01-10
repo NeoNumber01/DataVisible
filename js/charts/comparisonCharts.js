@@ -373,6 +373,8 @@ const ComparisonCharts = {
         const borderWidth = options.borderWidth !== undefined ? options.borderWidth : 2;
         const gapWidth = options.gapWidth !== undefined ? options.gapWidth : 2;
         const labelFontSize = options.labelFontSize || 14;
+        const labelFontWeight = options.labelFontWeight || 'normal';
+        const labelColor = options.labelColor || '#fff';
         const showValues = options.showValues !== undefined ? options.showValues : true;
 
         let colors;
@@ -420,7 +422,9 @@ const ComparisonCharts = {
                 label: {
                     show: showValues,
                     formatter: showValues ? '{b}: {c}' : '{b}',
-                    fontSize: labelFontSize
+                    fontSize: labelFontSize,
+                    fontWeight: labelFontWeight,
+                    color: labelColor
                 },
                 upperLabel: {
                     show: true,

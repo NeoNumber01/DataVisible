@@ -313,6 +313,7 @@ const Charts3D = {
 
         // Parse options - support both array (colors) and object format
         const customColors = Array.isArray(options) ? options : options?.customColors;
+        const categoryColors = options.categoryColors || {};
         const autoRotate = options.autoRotate !== undefined ? options.autoRotate : true;
         const rotateSpeed = options.rotateSpeed || 3;
         const symbolSize = options.symbolSize || 8;
@@ -323,20 +324,40 @@ const Charts3D = {
         const labelFontWeight = options.labelFontWeight || 'bold';
         const labelColor = options.labelColor || 'inherit';
 
-        // Custom color for scatter points
-        const defaultColors = ChartColorsConfig?.presets?.default?.colors || ['#f97316', '#ec4899'];
-        const mainColor = customColors && customColors[0] ? customColors[0] : (defaultColors[4] || '#f97316');
-        const emphasisColor = customColors && customColors[1] ? customColors[1] : (defaultColors[2] || '#ec4899');
+        // Get color palette for data points
+        const dataCount = data.labels.length;
+        let colors;
 
-        // Generate globe scatter data
-        const globeData = data.labels.map((label, i) => ({
-            name: label,
-            value: [
-                (i * 30) % 360 - 180,  // longitude
-                (i * 20) % 180 - 90,   // latitude
-                data.datasets[0]?.data[i] || 10
-            ]
-        }));
+        if (customColors && customColors.length > 0) {
+            // Use custom colors and expand if needed
+            colors = BasicCharts.generateColors(customColors, dataCount);
+        } else {
+            // Use default color palette
+            colors = BasicCharts.getColorPalette(dataCount);
+        }
+
+        // Generate globe scatter data with individual colors
+        const globeData = data.labels.map((label, i) => {
+            // Determine color for this data point
+            let pointColor = colors[i % colors.length];
+
+            // If category colors are set, use them
+            if (categoryColors[i]) {
+                pointColor = categoryColors[i];
+            }
+
+            return {
+                name: label,
+                value: [
+                    (i * 30) % 360 - 180,  // longitude
+                    (i * 20) % 180 - 90,   // latitude
+                    data.datasets[0]?.data[i] || 10
+                ],
+                itemStyle: {
+                    color: pointColor
+                }
+            };
+        });
 
         const option = {
             tooltip: {
@@ -376,12 +397,11 @@ const Charts3D = {
                     return Math.max(symbolSize, val[2] / 5);
                 },
                 itemStyle: {
-                    color: mainColor,
                     opacity: 0.8
                 },
                 emphasis: {
                     itemStyle: {
-                        color: emphasisColor
+                        opacity: 1
                     }
                 },
                 label: {

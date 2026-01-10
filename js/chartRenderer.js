@@ -474,8 +474,8 @@ class ChartRenderer {
             effectiveColors = defaultColors.map((c, i) => seriesColors[i] || c);
         }
 
-        // Use effective colors (prioritize explicit customColors if set)
-        const colorsToUse = customColors || effectiveColors;
+        // Use effective colors (prioritize explicit customColors if set and not empty)
+        const colorsToUse = (customColors && customColors.length > 0) ? customColors : effectiveColors;
 
         // Build render options object with colors, showValues, and chart options
         const renderOptions = {
@@ -512,7 +512,7 @@ class ChartRenderer {
                 chart = ComparisonCharts.createWordCloudChart(container, this.data, renderOptions);
                 break;
             case 'table':
-                chart = ComparisonCharts.createDataTable(container, this.data);
+                chart = ComparisonCharts.createDataTable(container, this.data, renderOptions);
                 break;
             case 'waterfall':
                 chart = SpecialCharts.createWaterfallChart(container, this.data, renderOptions);
@@ -917,13 +917,46 @@ class ChartRenderer {
             </div>
         `;
 
-        // Position menu
+        // Position menu with boundary checks
         menu.style.position = 'fixed';
-        menu.style.top = `${rect.bottom + 8}px`;
-        menu.style.left = `${Math.max(10, rect.left - 150)}px`;
         menu.style.zIndex = '2000';
 
         document.body.appendChild(menu);
+
+        // Calculate position after appending to get actual dimensions
+        const menuWidth = menu.offsetWidth;
+        const menuHeight = menu.offsetHeight;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Calculate initial left position
+        let leftPos = rect.left - menuWidth + rect.width;
+
+        // Ensure menu doesn't go off the right edge
+        if (leftPos + menuWidth > viewportWidth - 10) {
+            leftPos = viewportWidth - menuWidth - 10;
+        }
+
+        // Ensure menu doesn't go off the left edge
+        if (leftPos < 10) {
+            leftPos = 10;
+        }
+
+        // Calculate top position
+        let topPos = rect.bottom + 8;
+
+        // If menu would go off bottom, show above the button
+        if (topPos + menuHeight > viewportHeight - 10) {
+            topPos = rect.top - menuHeight - 8;
+        }
+
+        // Ensure menu doesn't go off top edge
+        if (topPos < 10) {
+            topPos = 10;
+        }
+
+        menu.style.top = `${topPos}px`;
+        menu.style.left = `${leftPos}px`;
 
         // Event handlers
         menu.querySelector('.close-export-menu').onclick = () => menu.remove();
