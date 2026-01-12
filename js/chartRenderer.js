@@ -15,6 +15,40 @@ class ChartRenderer {
         this.zoomLevels = new Map(); // slot -> current zoom scale
         this.currentLayout = 1;
         this.data = null;
+
+        // Handle window resize
+        this.resizeHandler = debounce(this.handleResize.bind(this), 200);
+        window.addEventListener('resize', this.resizeHandler);
+    }
+
+    /**
+     * Handle window resize - re-render charts that need manual dimension updates
+     * (like ECharts graphic elements using absolute pixels)
+     */
+    handleResize() {
+        this.charts.forEach((chartInfo, slot) => {
+            if (chartInfo.type === 'echarts' && chartInfo.instance) {
+                // Always call standard resize first
+                chartInfo.instance.resize();
+
+                // For custom graphic charts (like perspective 3D bar), we MUST re-set option
+                // because graphic elements are drawn using fixed pixel coordinates calculated at creation time.
+                const chartType = this.chartTypes.get(slot);
+                const complexGraphicCharts = [
+                    'perspectiveBar3d',
+                    'clusteredBar3d',
+                    'stackedBar3d',
+                    'percentStackedBar3d'
+                ];
+
+                if (complexGraphicCharts.includes(chartType)) {
+                    // Re-render essentially re-calculates all option parameters based on new container size
+                    this.renderChart(slot, chartType);
+                }
+            } else if (chartInfo.type === 'chartjs' && chartInfo.instance) {
+                chartInfo.instance.resize();
+            }
+        });
     }
 
 
@@ -162,40 +196,27 @@ class ChartRenderer {
      */
     resetZoom(slot) {
         if (!this.zoomLevels) this.zoomLevels = new Map();
+        if (!this.zoomOffsets) this.zoomOffsets = new Map();
+
         this.zoomLevels.set(slot, 1);
+        this.zoomOffsets.set(slot, { x: 0, y: 0 });
 
-        const canvas = document.getElementById(`canvas-${slot}`);
-        const echartContainer = document.getElementById(`echart-${slot}`);
+        // Apply reset transform
+        this.applyZoomTransform(slot, 1, { x: 0, y: 0 });
+        this.updateZoomIndicator(slot, 1);
+
+        // Reset wrapper cursor
         const wrapper = document.querySelector(`#chart-${slot} .chart-wrapper`);
-
-        // Reset CSS transform
-        const transform = 'scale(1)';
-        const origin = 'center top';
-
-        if (canvas) {
-            canvas.style.transform = transform;
-            canvas.style.transformOrigin = origin;
-        }
-        if (echartContainer) {
-            echartContainer.style.transform = transform;
-            echartContainer.style.transformOrigin = origin;
-        }
-
-        // Reset scrolling
         if (wrapper) {
-            wrapper.style.overflow = 'hidden'; // Reset to hidden to avoid scrollbars at 1x
-            wrapper.scrollTop = 0;
-            wrapper.scrollLeft = 0;
+            wrapper.style.cursor = 'default';
         }
 
-        // Also reset internal chart zoom for completeness (optional, but good for "Zoom Out Fully")
+        // Also reset internal chart zoom for completeness
         const chartInfo = this.charts.get(slot);
         if (chartInfo) {
             if (chartInfo.type === 'chartjs' && chartInfo.instance.resetZoom) {
                 chartInfo.instance.resetZoom();
             } else if (chartInfo.type === 'echarts') {
-                // Use 'restore' action to reset chart to initial state
-                // This works for dataZoom, roam (graph/map), and other interactive states
                 chartInfo.instance.dispatchAction({
                     type: 'restore'
                 });
@@ -205,32 +226,52 @@ class ChartRenderer {
 
 
     /**
-     * Handle zoom in/out (Visual CSS Scale)
+     * Handle zoom in/out with improved interactive zoom
+     * Supports: button click zoom, mouse wheel zoom, drag to pan
      */
     handleZoom(slot, type) {
         if (!this.zoomLevels) this.zoomLevels = new Map();
+        if (!this.zoomOffsets) this.zoomOffsets = new Map();
 
         let currentZoom = this.zoomLevels.get(slot) || 1;
-        const step = 0.1;
+        let offset = this.zoomOffsets.get(slot) || { x: 0, y: 0 };
+        const step = 0.2;
+        const maxZoom = 5;
+        const minZoom = 0.5;
 
         if (type === 'in') {
-            currentZoom += step;
-        } else {
-            currentZoom = Math.max(0.1, currentZoom - step); // Prevent going below 0.1
+            currentZoom = Math.min(maxZoom, currentZoom + step);
+        } else if (type === 'out') {
+            currentZoom = Math.max(minZoom, currentZoom - step);
+            // Reset offset when zooming out to prevent losing the chart
+            if (currentZoom <= 1) {
+                offset = { x: 0, y: 0 };
+            }
         }
 
-        // Snap to 1.0 if close (limits precision errors)
-        if (Math.abs(currentZoom - 1) < 0.01) currentZoom = 1;
+        // Snap to 1.0 if close
+        if (Math.abs(currentZoom - 1) < 0.05) {
+            currentZoom = 1;
+            offset = { x: 0, y: 0 };
+        }
 
         this.zoomLevels.set(slot, currentZoom);
+        this.zoomOffsets.set(slot, offset);
 
+        this.applyZoomTransform(slot, currentZoom, offset);
+        this.updateZoomIndicator(slot, currentZoom);
+    }
+
+    /**
+     * Apply zoom transform to chart elements
+     */
+    applyZoomTransform(slot, zoom, offset) {
         const canvas = document.getElementById(`canvas-${slot}`);
         const echartContainer = document.getElementById(`echart-${slot}`);
         const wrapper = document.querySelector(`#chart-${slot} .chart-wrapper`);
 
-        // Apply CSS transform
-        const transform = `scale(${currentZoom})`;
-        const origin = 'center top'; // Scale from top center to keep position predictable
+        const transform = `scale(${zoom}) translate(${offset.x}px, ${offset.y}px)`;
+        const origin = 'center center';
 
         if (canvas) {
             canvas.style.transform = transform;
@@ -241,14 +282,95 @@ class ChartRenderer {
             echartContainer.style.transformOrigin = origin;
         }
 
-        // Handle wrapper overflow
+        // Enable scrolling when zoomed in
         if (wrapper) {
-            if (currentZoom > 1) {
-                wrapper.style.overflow = 'auto'; // Enable scrolling when zoomed in
-            } else {
-                wrapper.style.overflow = 'hidden'; // Hide when zoomed out/normal
-            }
+            wrapper.style.overflow = zoom > 1 ? 'hidden' : 'hidden';
+            wrapper.style.cursor = zoom > 1 ? 'grab' : 'default';
         }
+    }
+
+    /**
+     * Update zoom level indicator
+     */
+    updateZoomIndicator(slot, zoom) {
+        const container = document.getElementById(`chart-${slot}`);
+        if (!container) return;
+
+        let indicator = container.querySelector('.zoom-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'zoom-indicator';
+            const wrapper = container.querySelector('.chart-wrapper');
+            if (wrapper) wrapper.appendChild(indicator);
+        }
+
+        const percentage = Math.round(zoom * 100);
+        indicator.textContent = `${percentage}%`;
+        indicator.style.opacity = '1';
+
+        // Auto-hide after 1.5 seconds
+        clearTimeout(indicator._hideTimer);
+        indicator._hideTimer = setTimeout(() => {
+            indicator.style.opacity = '0';
+        }, 1500);
+    }
+
+    /**
+     * Initialize interactive zoom (mouse wheel + drag to pan)
+     */
+    initInteractiveZoom(slot) {
+        const wrapper = document.querySelector(`#chart-${slot} .chart-wrapper`);
+        if (!wrapper || wrapper._zoomInitialized) return;
+
+        wrapper._zoomInitialized = true;
+
+        // Mouse wheel zoom
+        wrapper.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 'out' : 'in';
+            this.handleZoom(slot, delta);
+        }, { passive: false });
+
+        // Drag to pan when zoomed in
+        let isDragging = false;
+        let startX, startY;
+        let startOffset;
+
+        wrapper.addEventListener('mousedown', (e) => {
+            const currentZoom = this.zoomLevels?.get(slot) || 1;
+            if (currentZoom <= 1) return;
+
+            isDragging = true;
+            wrapper.style.cursor = 'grabbing';
+            startX = e.clientX;
+            startY = e.clientY;
+            startOffset = this.zoomOffsets?.get(slot) || { x: 0, y: 0 };
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            const currentZoom = this.zoomLevels?.get(slot) || 1;
+            const dx = (e.clientX - startX) / currentZoom;
+            const dy = (e.clientY - startY) / currentZoom;
+
+            const newOffset = {
+                x: startOffset.x + dx,
+                y: startOffset.y + dy
+            };
+
+            this.zoomOffsets.set(slot, newOffset);
+            this.applyZoomTransform(slot, currentZoom, newOffset);
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                const currentZoom = this.zoomLevels?.get(slot) || 1;
+                wrapper.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+            }
+        });
     }
 
     /**
@@ -267,6 +389,57 @@ class ChartRenderer {
         return this.chartOptions.get(slot) || {};
     }
 
+    /**
+     * Set series configuration for customCombo chart
+     * @param {number} slot - Chart slot number
+     * @param {number} seriesIndex - Series index
+     * @param {string} type - Chart type: 'bar', 'line', 'area', 'scatter'
+     * @param {string} axis - Axis: 'primary' or 'secondary'
+     */
+    setSeriesConfig(slot, seriesIndex, type, axis) {
+        const currentOptions = this.chartOptions.get(slot) || {};
+        const seriesConfig = currentOptions.seriesConfig || {};
+
+        seriesConfig[seriesIndex] = { type, axis };
+
+        this.chartOptions.set(slot, {
+            ...currentOptions,
+            seriesConfig
+        });
+
+        const chartType = this.chartTypes.get(slot) || 'customCombo';
+        this.renderChart(slot, chartType);
+    }
+
+    /**
+     * Get series configuration for a slot
+     */
+    getSeriesConfig(slot) {
+        const options = this.chartOptions.get(slot) || {};
+        return options.seriesConfig || {};
+    }
+
+    /**
+     * Initialize series config with default values based on current data
+     * First series = bar, rest = line, all on primary axis
+     */
+    initSeriesConfig(slot) {
+        if (!this.data || !this.data.datasets) return;
+
+        const seriesConfig = {};
+        this.data.datasets.forEach((ds, i) => {
+            seriesConfig[i] = {
+                type: i === 0 ? 'bar' : 'line',
+                axis: 'primary'
+            };
+        });
+
+        const currentOptions = this.chartOptions.get(slot) || {};
+        this.chartOptions.set(slot, {
+            ...currentOptions,
+            seriesConfig
+        });
+    }
 
     /**
      * Check if chart can be updated in-place (optimization)
@@ -297,7 +470,11 @@ class ChartRenderer {
             'boxplot', 'heatmap', 'funnel', 'treemap', 'sunburst', 'sankey', 'gauge', 'wordcloud', 'table',
             'waterfall', 'timeline', 'graph', 'map', 'parallel', 'calendar', 'themeriver', 'pictorial', 'liquid',
             'bar3d', 'scatter3d', 'surface3d', 'globe', 'line3d',
-            'candlestick', 'effectScatter', 'bullet', 'stepLine', 'histogram', 'tree', 'progress'
+            'candlestick', 'effectScatter', 'bullet', 'stepLine', 'histogram', 'tree', 'progress',
+            // New charts
+            'volumeCandlestick', 'pie3d', 'wireframeSurface',
+            // Pseudo 3D bar charts
+            'clusteredBar3d', 'stackedBar3d', 'percentStackedBar3d', 'perspectiveBar3d'
         ];
         const htmlTypes = ['metric', 'sparkline'];
 
@@ -338,6 +515,7 @@ class ChartRenderer {
 
             // Update type tracking
             this.chartTypes.set(slot, chartType);
+
             return;
         }
 
@@ -368,6 +546,9 @@ class ChartRenderer {
         if (select) {
             select.value = chartType;
         }
+
+        // Initialize interactive zoom (mouse wheel + drag to pan)
+        this.initInteractiveZoom(slot);
     }
 
     /**
@@ -386,6 +567,7 @@ class ChartRenderer {
 
         // Build render options - merge chart options with other settings
         const renderOptions = {
+            customColors: customColors,  // Include custom colors for charts that read from options
             showValues: showValues,
             seriesColors: seriesColors,
             categoryColors: categoryColors,
@@ -444,6 +626,61 @@ class ChartRenderer {
                 break;
             case 'horizontalBar':
                 chart = BasicCharts.createHorizontalBarChart(ctx, this.data, renderOptions);
+                break;
+            // Pie Variants
+            case 'explodedPie':
+                chart = BasicCharts.createExplodedPieChart(ctx, this.data, renderOptions);
+                break;
+            case 'halfDoughnut':
+                chart = BasicCharts.createHalfDoughnutChart(ctx, this.data, renderOptions);
+                break;
+            case 'nestedDoughnut':
+                chart = BasicCharts.createNestedDoughnutChart(ctx, this.data, renderOptions);
+                break;
+            // Combo Charts
+            case 'barLine':
+                chart = ComboCharts.createBarLineChart(ctx, this.data, renderOptions);
+                break;
+            case 'areaLine':
+                chart = ComboCharts.createAreaLineChart(ctx, this.data, renderOptions);
+                break;
+            case 'barArea':
+                chart = ComboCharts.createBarAreaChart(ctx, this.data, renderOptions);
+                break;
+            case 'dualAxis':
+                chart = ComboCharts.createDualAxisChart(ctx, this.data, renderOptions);
+                break;
+            case 'customCombo':
+                chart = ComboCharts.createCustomComboChart(ctx, this.data, renderOptions);
+                break;
+            // Stacked Variants
+            case 'stackedPercent':
+                chart = AdvancedCharts.createStackedPercentChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedLine':
+                chart = AdvancedCharts.createStackedLineChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedPercentLine':
+                chart = AdvancedCharts.createStackedPercentLineChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedHorizontalBar':
+                chart = AdvancedCharts.createStackedHorizontalBarChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedPercentHorizontalBar':
+                chart = AdvancedCharts.createStackedPercentHorizontalBarChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedArea':
+                chart = AdvancedCharts.createStackedAreaChart(ctx, this.data, renderOptions);
+                break;
+            case 'stackedPercentArea':
+                chart = AdvancedCharts.createStackedPercentAreaChart(ctx, this.data, renderOptions);
+                break;
+            // Scatter Variants
+            case 'scatterSmooth':
+                chart = AdvancedCharts.createScatterSmoothChart(ctx, this.data, renderOptions);
+                break;
+            case 'scatterLine':
+                chart = AdvancedCharts.createScatterLineChart(ctx, this.data, renderOptions);
                 break;
             default:
                 chart = BasicCharts.createBarChart(ctx, this.data, renderOptions);
@@ -618,6 +855,30 @@ class ChartRenderer {
             case 'progress':
                 chart = FinancialCharts.createProgressChart(container, this.data, renderOptions);
                 break;
+            // New Financial Charts
+            case 'volumeCandlestick':
+                chart = FinancialCharts.createVolumeCandlestickChart(container, this.data, renderOptions);
+                break;
+            // New 3D Charts
+            case 'pie3d':
+                chart = Charts3D.createPie3DChart(container, this.data, renderOptions);
+                break;
+            case 'wireframeSurface':
+                chart = Charts3D.createWireframeSurfaceChart(container, this.data, renderOptions);
+                break;
+            // Pseudo 3D bar charts
+            case 'clusteredBar3d':
+                chart = Charts3D.createClusteredBar3DChart(container, this.data, renderOptions);
+                break;
+            case 'stackedBar3d':
+                chart = Charts3D.createStackedBar3DChart(container, this.data, renderOptions);
+                break;
+            case 'percentStackedBar3d':
+                chart = Charts3D.createPercentStackedBar3DChart(container, this.data, renderOptions);
+                break;
+            case 'perspectiveBar3d':
+                chart = Charts3D.createPerspectiveBar3DChart(container, this.data, renderOptions);
+                break;
             default:
                 chart = ComparisonCharts.createHeatmapChart(container, this.data, renderOptions);
         }
@@ -755,6 +1016,9 @@ class ChartRenderer {
                         <option value="pie">${t.pie}</option>
                         <option value="doughnut">${t.doughnut}</option>
                         <option value="horizontalBar">${t.horizontalBar}</option>
+                        <option value="explodedPie">${t.explodedPie}</option>
+                        <option value="halfDoughnut">${t.halfDoughnut}</option>
+                        <option value="nestedDoughnut">${t.nestedDoughnut}</option>
                     </optgroup>
                     <optgroup label="${t.advancedCharts}">
                         <option value="scatter">${t.scatter}</option>
@@ -765,6 +1029,22 @@ class ChartRenderer {
                         <option value="polar">${t.polar}</option>
                         <option value="rose">${t.rose}</option>
                         <option value="mixed">${t.mixed}</option>
+                        <option value="stackedPercent">${t.stackedPercent}</option>
+                        <option value="stackedLine">${t.stackedLine}</option>
+                        <option value="stackedPercentLine">${t.stackedPercentLine}</option>
+                        <option value="stackedHorizontalBar">${t.stackedHorizontalBar}</option>
+                        <option value="stackedPercentHorizontalBar">${t.stackedPercentHorizontalBar}</option>
+                        <option value="stackedArea">${t.stackedArea}</option>
+                        <option value="stackedPercentArea">${t.stackedPercentArea}</option>
+                        <option value="scatterSmooth">${t.scatterSmooth}</option>
+                        <option value="scatterLine">${t.scatterLine}</option>
+                    </optgroup>
+                    <optgroup label="${t.comboCharts}">
+                        <option value="barLine">${t.barLine}</option>
+                        <option value="areaLine">${t.areaLine}</option>
+                        <option value="barArea">${t.barArea}</option>
+                        <option value="dualAxis">${t.dualAxis}</option>
+                        <option value="customCombo">${t.customCombo}</option>
                     </optgroup>
                     <optgroup label="${t.distributionCharts}">
                         <option value="boxplot">${t.boxplot}</option>
@@ -788,6 +1068,27 @@ class ChartRenderer {
                         <option value="themeriver">${t.themeriver}</option>
                         <option value="pictorial">${t.pictorial}</option>
                         <option value="liquid">${t.liquid}</option>
+                    </optgroup>
+                    <optgroup label="${t.financialCharts}">
+                        <option value="candlestick">${t.candlestick}</option>
+                        <option value="effectScatter">${t.effectScatter}</option>
+                        <option value="bullet">${t.bullet}</option>
+                        <option value="stepLine">${t.stepLine}</option>
+                        <option value="histogram">${t.histogram}</option>
+                        <option value="tree">${t.tree}</option>
+                        <option value="progress">${t.progress}</option>
+                        <option value="metric">${t.metric}</option>
+                        <option value="sparkline">${t.sparkline}</option>
+                        <option value="volumeCandlestick">${t.volumeCandlestick}</option>
+                    </optgroup>
+                    <optgroup label="${t.charts3D}">
+                        <option value="bar3d">${t.bar3d}</option>
+                        <option value="scatter3d">${t.scatter3d}</option>
+                        <option value="surface3d">${t.surface3d}</option>
+                        <option value="line3d">${t.line3d}</option>
+                        <option value="globe">${t.globe}</option>
+                        <option value="pie3d">${t.pie3d}</option>
+                        <option value="wireframeSurface">${t.wireframeSurface}</option>
                     </optgroup>
                 </select>
                 <button class="chart-action-btn color-picker-btn" data-action="colorpicker" title="${t.colorPicker}">
@@ -877,16 +1178,42 @@ class ChartRenderer {
             distributionCharts: 'Distribution Charts',
             hierarchyCharts: 'Hierarchy Charts',
             specialCharts: 'Special Charts',
+            financialCharts: 'Financial Charts',
+            charts3D: '3D Charts',
+            comboCharts: 'Combo Charts',
+            // Basic charts
             bar: 'Bar Chart', line: 'Line Chart', pie: 'Pie Chart', doughnut: 'Doughnut Chart',
             horizontalBar: 'Horizontal Bar',
+            explodedPie: 'Exploded Pie', halfDoughnut: 'Half Doughnut', nestedDoughnut: 'Nested Doughnut',
+            // Advanced charts
             scatter: 'Scatter Chart', bubble: 'Bubble Chart', radar: 'Radar Chart',
             area: 'Area Chart', stacked: 'Stacked Chart', polar: 'Polar Area',
             rose: 'Rose Chart', mixed: 'Mixed Chart',
+            // Stacked variants
+            stackedPercent: '100% Stacked Bar', stackedLine: 'Stacked Line',
+            stackedPercentLine: '100% Stacked Line', stackedHorizontalBar: 'Stacked Horizontal Bar',
+            stackedPercentHorizontalBar: '100% Stacked Horizontal Bar',
+            stackedArea: 'Stacked Area', stackedPercentArea: '100% Stacked Area',
+            // Scatter variants
+            scatterSmooth: 'Smooth Scatter', scatterLine: 'Line Scatter',
+            // Combo charts
+            barLine: 'Bar + Line', areaLine: 'Area + Line', barArea: 'Bar + Area',
+            dualAxis: 'Dual Y-Axis', customCombo: 'Custom Combo',
+            // Distribution/hierarchy/special charts
             boxplot: 'Box Plot', heatmap: 'Heatmap', calendar: 'Calendar Heatmap',
             treemap: 'Treemap', sunburst: 'Sunburst', sankey: 'Sankey Diagram', funnel: 'Funnel Chart',
             gauge: 'Gauge', wordcloud: 'Word Cloud', table: 'Data Table',
             waterfall: 'Waterfall', timeline: 'Timeline', graph: 'Graph',
             parallel: 'Parallel', themeriver: 'Theme River', pictorial: 'Pictorial Bar', liquid: 'Liquid',
+            // Financial charts
+            candlestick: 'Candlestick', effectScatter: 'Effect Scatter', bullet: 'Bullet Chart',
+            stepLine: 'Step Line', histogram: 'Histogram', tree: 'Tree',
+            progress: 'Progress', metric: 'Metric Cards', sparkline: 'Sparklines',
+            volumeCandlestick: 'Volume Candlestick',
+            // 3D charts
+            bar3d: '3D Bar', scatter3d: '3D Scatter', surface3d: '3D Surface',
+            line3d: '3D Line', globe: 'Globe', pie3d: '3D Pie', wireframeSurface: 'Wireframe Surface',
+            // UI elements
             colorPicker: 'Color', fullscreen: 'Fullscreen', download: 'Download',
             toggleValues: 'Show/Hide Values',
             chartSettings: 'Chart Settings',
@@ -985,7 +1312,7 @@ class ChartRenderer {
 
         // Position menu with boundary checks
         menu.style.position = 'fixed';
-        menu.style.zIndex = '2000';
+        menu.style.zIndex = '10001';  // Must be higher than fullscreen z-index (9999)
 
         document.body.appendChild(menu);
 
@@ -1075,9 +1402,16 @@ class ChartRenderer {
         let dataUrl;
 
         try {
+            // Pseudo 3D charts use graphic elements and need html2canvas for export
+            const chartType = this.chartTypes.get(slot);
+            const pseudo3DCharts = ['perspectiveBar3d', 'clusteredBar3d', 'stackedBar3d', 'percentStackedBar3d'];
+            const isPseudo3DChart = pseudo3DCharts.includes(chartType);
+
             // Check if it's an HTML-based chart (metric, sparkline) or a specialized chart without getDataURL (table)
+            // Also include pseudo 3D charts that use graphic elements
             const isHtmlChart = chartInfo.type === 'html' ||
-                (chartInfo.type === 'echarts' && !chartInfo.instance.getDataURL);
+                (chartInfo.type === 'echarts' && !chartInfo.instance.getDataURL) ||
+                isPseudo3DChart;
 
             if (isHtmlChart) {
                 if (format === 'svg') {
@@ -1098,6 +1432,13 @@ class ChartRenderer {
                 }
 
                 const element = document.getElementById(`echart-${slot}`);
+                const container = document.getElementById(`chart-${slot}`);
+
+                // Temporarily hide overlay and controls for clean export
+                const overlay = container?.querySelector('.pseudo-3d-overlay');
+                const controls = container?.querySelector('.chart-3d-controls');
+                if (overlay) overlay.style.display = 'none';
+                if (controls) controls.style.display = 'none';
 
                 // Use html2canvas to capture the element
                 const canvas = await html2canvas(element, {
@@ -1106,6 +1447,10 @@ class ChartRenderer {
                     backgroundColor: (format === 'jpg' || format === 'jpeg') ? '#ffffff' : null,
                     logging: false
                 });
+
+                // Restore overlay and controls
+                if (overlay) overlay.style.display = '';
+                if (controls) controls.style.display = 'flex';
 
                 dataUrl = canvas.toDataURL(mimeType, quality);
 
@@ -1202,28 +1547,34 @@ class ChartRenderer {
         container.classList.toggle('fullscreen');
 
         // Resize chart after fullscreen toggle
+        // Use longer delay to ensure CSS transition completes
         setTimeout(() => {
             const chartInfo = this.charts.get(slot);
+            const chartType = this.chartTypes.get(slot);
+
             if (chartInfo) {
-                if (chartInfo.type === 'chartjs') {
+                // For 3D charts using graphic elements, we need full re-render
+                const complexGraphicCharts = [
+                    'perspectiveBar3d',
+                    'clusteredBar3d',
+                    'stackedBar3d',
+                    'percentStackedBar3d'
+                ];
+
+                if (chartInfo.type === 'echarts' && complexGraphicCharts.includes(chartType)) {
+                    // Full re-render to recalculate pixel positions
+                    this.renderChart(slot, chartType);
+                } else if (chartInfo.type === 'chartjs') {
                     chartInfo.instance.resize();
                 } else if (chartInfo.type === 'echarts' && chartInfo.instance.resize) {
                     chartInfo.instance.resize();
                 }
             }
-        }, 100);
+        }, 150);
     }
 
-    /**
-     * Handle window resize
-     */
-    handleResize() {
-        for (const [slot, chartInfo] of this.charts) {
-            if (chartInfo.type === 'echarts' && chartInfo.instance.resize) {
-                chartInfo.instance.resize();
-            }
-        }
-    }
+    // handleResize is defined at the top of the class (lines 28-52)
+    // This duplicate has been removed
 }
 
 // Export

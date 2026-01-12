@@ -25,7 +25,8 @@ const ChartOptions = {
             { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 5, min: 0, max: 12, step: 1 },
             { key: 'fill', label: 'fillArea', labelZh: '填充区域', type: 'boolean', default: false },
             { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.1, min: 0, max: 1, step: 0.1 },
-            { key: 'showPoints', label: 'showPoints', labelZh: '显示数据点', type: 'boolean', default: true }
+            { key: 'showPoints', label: 'showPoints', labelZh: '显示数据点', type: 'boolean', default: true },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 20, min: 0, max: 150, step: 5 }
         ],
 
         // Bar Chart Options
@@ -61,8 +62,29 @@ const ChartOptions = {
             { key: 'rotation', label: 'startAngle', labelZh: '起始角度', type: 'range', default: 0, min: 0, max: 360, step: 15 }
         ],
 
+        // Exploded Pie Chart Options (分离饼图)
+        explodedPie: [
+            { key: 'explodeOffset', label: 'explodeOffset', labelZh: '分离距离', type: 'range', default: 15, min: 0, max: 50, step: 5 },
+            { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 5, min: 0, max: 20, step: 2 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 8, step: 1 }
+        ],
+
+        // Half Doughnut Chart Options (半环形图)
+        halfDoughnut: [
+            { key: 'cutout', label: 'ringWidth', labelZh: '环宽度 %', type: 'range', default: 60, min: 20, max: 90, step: 5 },
+            { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 5, min: 0, max: 20, step: 2 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 8, step: 1 }
+        ],
+
+        // Nested Doughnut Chart Options (嵌套环形图)
+        nestedDoughnut: [
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 1, min: 0, max: 8, step: 1 },
+            { key: 'ringWeight', label: 'ringWeight', labelZh: '环权重', type: 'range', default: 1, min: 0.5, max: 3, step: 0.5 }
+        ],
+
         // Scatter Chart Options
         scatter: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 8, min: 2, max: 20, step: 1 },
             { key: 'pointHoverRadius', label: 'hoverSize', labelZh: '悬停大小', type: 'range', default: 10, min: 4, max: 25, step: 1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
@@ -70,12 +92,14 @@ const ChartOptions = {
 
         // Bubble Chart Options
         bubble: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'hoverRadius', label: 'hoverRadius', labelZh: '悬停放大', type: 'range', default: 4, min: 0, max: 10, step: 1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
         ],
 
         // Radar Chart Options
         radar: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0, min: 0, max: 0.5, step: 0.1 },
             { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
             { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 4, min: 0, max: 10, step: 1 },
             { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.2, min: 0, max: 1, step: 0.1 }
@@ -86,7 +110,8 @@ const ChartOptions = {
             { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
             { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
             { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.3, min: 0, max: 1, step: 0.1 },
-            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 4, min: 0, max: 10, step: 1 }
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 4, min: 0, max: 10, step: 1 },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 20, min: 0, max: 150, step: 5 }
         ],
 
         // Stacked Chart Options
@@ -98,12 +123,14 @@ const ChartOptions = {
 
         // Polar Area Chart Options
         polar: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0.1, max: 1, step: 0.1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 4, min: 0, max: 15, step: 1 }
         ],
 
         // Rose Chart Options
         rose: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.1 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'hoverOffset', label: 'hoverOffset', labelZh: '悬停偏移', type: 'range', default: 15, min: 0, max: 30, step: 2 }
         ],
@@ -116,6 +143,69 @@ const ChartOptions = {
             { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
         ],
 
+        // Bar + Line Combo Chart Options
+        barLine: [
+            { key: 'barBorderRadius', label: 'barRadius', labelZh: '柱状圆角', type: 'range', default: 6, min: 0, max: 15, step: 1 },
+            { key: 'lineTension', label: 'lineTension', labelZh: '折线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '折线粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 },
+            { key: 'useDualAxis', label: 'useDualAxis', labelZh: '双Y轴', type: 'boolean', default: true },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
+        ],
+
+        // Area + Line Combo Chart Options
+        areaLine: [
+            { key: 'areaTension', label: 'areaTension', labelZh: '面积平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'areaOpacity', label: 'areaOpacity', labelZh: '面积透明度', type: 'range', default: 0.3, min: 0, max: 1, step: 0.1 },
+            { key: 'lineTension', label: 'lineTension', labelZh: '折线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '折线粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 },
+            { key: 'useDualAxis', label: 'useDualAxis', labelZh: '双Y轴', type: 'boolean', default: true }
+        ],
+
+        // Bar + Area Combo Chart Options
+        barArea: [
+            { key: 'barBorderRadius', label: 'barRadius', labelZh: '柱状圆角', type: 'range', default: 6, min: 0, max: 15, step: 1 },
+            { key: 'areaTension', label: 'areaTension', labelZh: '面积平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'areaOpacity', label: 'areaOpacity', labelZh: '面积透明度', type: 'range', default: 0.3, min: 0, max: 1, step: 0.1 },
+            { key: 'useDualAxis', label: 'useDualAxis', labelZh: '双Y轴', type: 'boolean', default: true },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
+        ],
+
+        // Dual Axis Chart Options
+        dualAxis: [
+            {
+                key: 'primaryType', label: 'primaryType', labelZh: '主轴类型', type: 'select', default: 'bar', options: [
+                    { value: 'bar', label: '柱状图', labelEn: 'Bar' },
+                    { value: 'line', label: '折线图', labelEn: 'Line' },
+                    { value: 'area', label: '面积图', labelEn: 'Area' }
+                ]
+            },
+            {
+                key: 'secondaryType', label: 'secondaryType', labelZh: '副轴类型', type: 'select', default: 'line', options: [
+                    { value: 'bar', label: '柱状图', labelEn: 'Bar' },
+                    { value: 'line', label: '折线图', labelEn: 'Line' },
+                    { value: 'area', label: '面积图', labelEn: 'Area' }
+                ]
+            },
+            { key: 'barBorderRadius', label: 'barRadius', labelZh: '柱状圆角', type: 'range', default: 6, min: 0, max: 15, step: 1 },
+            { key: 'lineTension', label: 'lineTension', labelZh: '线条平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 },
+            { key: 'areaOpacity', label: 'areaOpacity', labelZh: '面积透明度', type: 'range', default: 0.3, min: 0, max: 1, step: 0.1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
+        ],
+
+        // Custom Combo Chart Options (自定义组合图)
+        // Note: seriesConfig is handled separately via the UI panel, not as a standard option
+        customCombo: [
+            { key: 'barBorderRadius', label: 'barRadius', labelZh: '柱状圆角', type: 'range', default: 6, min: 0, max: 15, step: 1 },
+            { key: 'barPercentage', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 0.7, min: 0.1, max: 1, step: 0.1 },
+            { key: 'lineTension', label: 'lineTension', labelZh: '线条平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'lineWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 3, min: 1, max: 6, step: 1 },
+            { key: 'areaOpacity', label: 'areaOpacity', labelZh: '面积透明度', type: 'range', default: 0.3, min: 0, max: 1, step: 0.1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 5, min: 0, max: 12, step: 1 },
+            { key: 'scatterPointRadius', label: 'scatterPointSize', labelZh: '散点大小', type: 'range', default: 8, min: 4, max: 20, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
+        ],
+
         // Heatmap Options (ECharts)
         heatmap: [
             { key: 'labelFontSize', label: 'labelSize', labelZh: '标签字号', type: 'range', default: 12, min: 8, max: 20, step: 1 },
@@ -124,6 +214,7 @@ const ChartOptions = {
 
         // Funnel Options (ECharts)
         funnel: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.85, min: 0.1, max: 1, step: 0.05 },
             { key: 'minSize', label: 'minSize', labelZh: '最小宽度 %', type: 'range', default: 10, min: 0, max: 50, step: 5 },
             { key: 'maxSize', label: 'maxSize', labelZh: '最大宽度 %', type: 'range', default: 100, min: 50, max: 100, step: 5 },
             { key: 'gap', label: 'gap', labelZh: '间距', type: 'range', default: 2, min: 0, max: 10, step: 1 },
@@ -146,6 +237,7 @@ const ChartOptions = {
 
         // Treemap Options (ECharts)
         treemap: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.9, min: 0.1, max: 1, step: 0.05 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 },
             { key: 'gapWidth', label: 'gapWidth', labelZh: '间距', type: 'range', default: 2, min: 0, max: 8, step: 1 },
             { key: 'labelFontSize', label: 'labelSize', labelZh: '标签字号', type: 'range', default: 14, min: 10, max: 24, step: 1 }
@@ -153,6 +245,7 @@ const ChartOptions = {
 
         // Boxplot Options (ECharts)
         boxplot: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.8, min: 0.1, max: 1, step: 0.05 },
             { key: 'boxWidth', label: 'boxWidth', labelZh: '箱体宽度', type: 'range', default: 50, min: 20, max: 100, step: 5 }
         ],
 
@@ -218,7 +311,13 @@ const ChartOptions = {
         // Candlestick Options (ECharts)
         candlestick: [
             { key: 'maPeriod1', label: 'maPeriod1', labelZh: 'MA周期1', type: 'range', default: 5, min: 3, max: 20, step: 1 },
-            { key: 'maPeriod2', label: 'maPeriod2', labelZh: 'MA周期2', type: 'range', default: 10, min: 5, max: 30, step: 1 }
+            { key: 'maPeriod2', label: 'maPeriod2', labelZh: 'MA周期2', type: 'range', default: 10, min: 5, max: 30, step: 1 },
+            {
+                key: 'colorConvention', label: 'colorConvention', labelZh: '颜色惯例', type: 'select', default: 'international', options: [
+                    { value: 'international', label: '国际惯例 (绿涨红跌)', labelEn: 'International (Green Up, Red Down)' },
+                    { value: 'chinese', label: '中国惯例 (红涨绿跌)', labelEn: 'Chinese (Red Up, Green Down)' }
+                ]
+            }
         ],
 
         // Effect Scatter Options (ECharts)
@@ -315,6 +414,7 @@ const ChartOptions = {
 
         // Sunburst Options (ECharts)
         sunburst: [
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.85, min: 0.1, max: 1, step: 0.05 },
             { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 2, min: 0, max: 6, step: 1 }
         ],
 
@@ -347,6 +447,136 @@ const ChartOptions = {
         table: [
             { key: 'fontSize', label: 'fontSize', labelZh: '字体大小', type: 'range', default: 14, min: 10, max: 20, step: 1 },
             { key: 'cellPadding', label: 'cellPadding', labelZh: '单元格内边距', type: 'range', default: 10, min: 5, max: 20, step: 1 }
+        ],
+
+        // 100% Stacked Bar Chart Options
+        stackedPercent: [
+            { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 4, min: 0, max: 15, step: 1 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 4, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 }
+        ],
+
+        // Stacked Line Chart Options
+        stackedLine: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 3, min: 0, max: 10, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // 100% Stacked Line Chart Options
+        stackedPercentLine: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 3, min: 0, max: 10, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // Stacked Horizontal Bar Chart Options
+        stackedHorizontalBar: [
+            { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 4, min: 0, max: 15, step: 1 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 4, step: 1 },
+            { key: 'layoutPadding', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // 100% Stacked Horizontal Bar Chart Options
+        stackedPercentHorizontalBar: [
+            { key: 'borderRadius', label: 'cornerRadius', labelZh: '圆角大小', type: 'range', default: 4, min: 0, max: 15, step: 1 },
+            { key: 'borderWidth', label: 'borderWidth', labelZh: '边框粗细', type: 'range', default: 0, min: 0, max: 4, step: 1 },
+            { key: 'layoutPadding', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // Stacked Area Chart Options
+        stackedArea: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0, max: 1, step: 0.1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 2, min: 0, max: 10, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // 100% Stacked Area Chart Options
+        stackedPercentArea: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'fillOpacity', label: 'fillOpacity', labelZh: '填充透明度', type: 'range', default: 0.6, min: 0, max: 1, step: 0.1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 2, min: 0, max: 10, step: 1 },
+            { key: 'layoutPadding', label: 'paddingTop', labelZh: '顶部边距', type: 'range', default: 20, min: 0, max: 100, step: 5 },
+            { key: 'paddingRight', label: 'paddingRight', labelZh: '右侧边距', type: 'range', default: 40, min: 0, max: 150, step: 5 }
+        ],
+
+        // Scatter with Smooth Lines Options
+        scatterSmooth: [
+            { key: 'tension', label: 'lineTension', labelZh: '曲线平滑度', type: 'range', default: 0.4, min: 0, max: 1, step: 0.1 },
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 6, min: 2, max: 15, step: 1 }
+        ],
+
+        // Scatter with Straight Lines Options
+        scatterLine: [
+            { key: 'borderWidth', label: 'lineWidth', labelZh: '线条粗细', type: 'range', default: 2, min: 1, max: 6, step: 1 },
+            { key: 'pointRadius', label: 'pointSize', labelZh: '点大小', type: 'range', default: 6, min: 2, max: 15, step: 1 }
+        ],
+
+        // Volume Candlestick Chart Options (成交量K线图)
+        volumeCandlestick: [
+            { key: 'maPeriod1', label: 'maPeriod1', labelZh: 'MA周期1', type: 'range', default: 5, min: 2, max: 30, step: 1 },
+            { key: 'maPeriod2', label: 'maPeriod2', labelZh: 'MA周期2', type: 'range', default: 10, min: 5, max: 60, step: 5 },
+            {
+                key: 'colorConvention', label: 'colorConvention', labelZh: '颜色惯例', type: 'select', default: 'international', options: [
+                    { value: 'international', label: '国际惯例 (绿涨红跌)', labelEn: 'International (Green Up, Red Down)' },
+                    { value: 'chinese', label: '中国惯例 (红涨绿跌)', labelEn: 'Chinese (Red Up, Green Down)' }
+                ]
+            }
+        ],
+
+        // 3D Pie Chart Options (3D饼图)
+        pie3d: [
+            { key: 'depth', label: 'depth', labelZh: '3D深度', type: 'range', default: 25, min: 5, max: 50, step: 5 },
+            {
+                key: 'roseType', label: 'roseType', labelZh: '玫瑰图模式', type: 'select', default: '', options: [
+                    { value: '', label: '关闭', labelEn: 'Off' },
+                    { value: 'radius', label: '半径模式', labelEn: 'Radius' },
+                    { value: 'area', label: '面积模式', labelEn: 'Area' }
+                ]
+            }
+        ],
+
+        // Wireframe Surface Chart Options (线框曲面图)
+        wireframeSurface: [
+            { key: 'wireframeWidth', label: 'wireframeWidth', labelZh: '线框粗细', type: 'range', default: 1, min: 0.5, max: 5, step: 0.5 },
+            { key: 'autoRotate', label: 'autoRotate', labelZh: '自动旋转', type: 'boolean', default: true },
+            { key: 'rotateSpeed', label: 'rotateSpeed', labelZh: '旋转速度', type: 'range', default: 3, min: 0, max: 15, step: 1 }
+        ],
+
+        // 三维簇状柱形图选项 (Clustered 3D Bar)
+        clusteredBar3d: [
+            { key: 'barWidth', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 25, min: 10, max: 60, step: 5 },
+            { key: 'depth', label: 'depth', labelZh: '3D深度', type: 'range', default: 15, min: 5, max: 40, step: 5 }
+        ],
+
+        // 三维堆积柱形图选项 (Stacked 3D Bar)
+        stackedBar3d: [
+            { key: 'barWidth', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 40, min: 20, max: 80, step: 5 },
+            { key: 'depth', label: 'depth', labelZh: '3D深度', type: 'range', default: 18, min: 5, max: 40, step: 2 }
+        ],
+
+        // 三维百分比堆积柱形图选项 (Percent Stacked 3D Bar)
+        percentStackedBar3d: [
+            { key: 'barWidth', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 40, min: 20, max: 80, step: 5 },
+            { key: 'depth', label: 'depth', labelZh: '3D深度', type: 'range', default: 18, min: 5, max: 40, step: 2 }
+        ],
+
+        // 三维柱形图（透视）选项 (Perspective 3D Bar)
+        perspectiveBar3d: [
+            { key: 'barWidth', label: 'barWidth', labelZh: '柱宽度', type: 'range', default: 30, min: 15, max: 60, step: 5 },
+            { key: 'depth', label: 'depth', labelZh: '3D深度', type: 'range', default: 20, min: 5, max: 40, step: 5 },
+            { key: 'depthGap', label: 'depthGap', labelZh: '深度间距', type: 'range', default: 25, min: 10, max: 50, step: 5 }
         ],
 
         // Default/fallback options (for charts without specific options)
@@ -382,7 +612,21 @@ const ChartOptions = {
         const baseOptions = this.definitions[chartType] || this.definitions.default;
 
         // Add axis options for Cartesian charts
-        const cartesianCharts = ['line', 'bar', 'horizontalBar', 'scatter', 'bubble', 'area', 'stacked', 'mixed'];
+        // 扩展直角坐标系图表列表，包含所有适合轴尺度设置的图表类型
+        const cartesianCharts = [
+            // 基础图表
+            'line', 'bar', 'horizontalBar', 'scatter', 'bubble', 'area', 'stacked', 'mixed',
+            // 组合图表
+            'barLine', 'areaLine', 'barArea', 'dualAxis', 'customCombo',
+            // 金融图表
+            'candlestick', 'effectScatter', 'bullet', 'stepLine', 'histogram',
+            // 特殊图表
+            'waterfall', 'timeline', 'pictorial', 'boxplot',
+            // 新增堆积类和散点类图表
+            'stackedPercent', 'stackedLine', 'stackedPercentLine',
+            'stackedHorizontalBar', 'stackedPercentHorizontalBar',
+            'stackedArea', 'stackedPercentArea', 'scatterSmooth', 'scatterLine'
+        ];
         let extendedOptions = [...baseOptions];
 
         if (cartesianCharts.includes(chartType)) {

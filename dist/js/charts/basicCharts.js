@@ -944,8 +944,274 @@ const BasicCharts = {
             data: chartData,
             options: { ...defaultOptions, ...options }
         });
+    },
+
+    /**
+     * Create an exploded pie chart (分离饼图)
+     * Each slice is offset from the center for visual emphasis
+     */
+    createExplodedPieChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
+        // Explosion offset (pixels from center)
+        const explodeOffset = options.explodeOffset !== undefined ? options.explodeOffset : 15;
+
+        const defaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { usePointStyle: true, padding: 15 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function (context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.raw} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${percentage}%`;
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 800,
+                easing: 'easeOutQuart'
+            }
+        };
+
+        const dataset = data.datasets[0] || { data: [] };
+        const customColors = options.customColors;
+        const categoryColors = options.categoryColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = this.getColorPalette(data.labels.length);
+        }
+
+        if (Object.keys(categoryColors).length > 0) {
+            colors = colors.map((c, i) => categoryColors[i] || c);
+        }
+
+        // All slices are offset (exploded) from center
+        const offsets = new Array(data.labels.length).fill(explodeOffset);
+
+        const chartData = {
+            labels: data.labels,
+            datasets: [{
+                data: dataset.data,
+                backgroundColor: colors,
+                borderColor: '#fff',
+                borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
+                hoverOffset: options.hoverOffset !== undefined ? options.hoverOffset : 5,
+                offset: offsets
+            }]
+        };
+
+        return new Chart(ctx, {
+            type: 'pie',
+            data: chartData,
+            options: { ...defaultOptions, ...options }
+        });
+    },
+
+    /**
+     * Create a half doughnut chart (半环形图)
+     * Charts only 180 degrees (semi-circle) - useful for gauges and progress
+     */
+    createHalfDoughnutChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
+        const defaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            rotation: -90, // Start from bottom-left
+            circumference: 180, // Only show half
+            cutout: options.cutout !== undefined ? options.cutout + '%' : '60%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { usePointStyle: true, padding: 15 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function (context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.raw} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${percentage}%`;
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 800,
+                easing: 'easeOutQuart'
+            }
+        };
+
+        const dataset = data.datasets[0] || { data: [] };
+        const customColors = options.customColors;
+        const categoryColors = options.categoryColors || {};
+
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = this.getColorPalette(data.labels.length);
+        }
+
+        if (Object.keys(categoryColors).length > 0) {
+            colors = colors.map((c, i) => categoryColors[i] || c);
+        }
+
+        const chartData = {
+            labels: data.labels,
+            datasets: [{
+                data: dataset.data,
+                backgroundColor: colors,
+                borderColor: '#fff',
+                borderWidth: options.borderWidth !== undefined ? options.borderWidth : 2,
+                hoverOffset: options.hoverOffset !== undefined ? options.hoverOffset : 5
+            }]
+        };
+
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: chartData,
+            options: { ...defaultOptions, ...options }
+        });
+    },
+
+    /**
+     * Create a nested doughnut chart (嵌套环形图/多层环形图)
+     * Multiple datasets displayed as concentric rings
+     */
+    createNestedDoughnutChart(ctx, data, options = {}) {
+        const showValues = options.showValues || false;
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || '#fff';
+
+        const defaultOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: { usePointStyle: true, padding: 15 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function (context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.raw / total) * 100).toFixed(1);
+                            return `${context.dataset.label || 'Ring ' + context.datasetIndex}: ${context.label} - ${context.raw} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    display: showValues,
+                    color: labelColor,
+                    font: { weight: labelFontWeight, size: labelFontSize },
+                    formatter: (value, context) => {
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return percentage > 5 ? `${percentage}%` : '';
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
+                duration: 800,
+                easing: 'easeOutQuart'
+            }
+        };
+
+        const customColors = options.customColors;
+
+        // Create datasets with increasing ring radius
+        const chartData = {
+            labels: data.labels,
+            datasets: data.datasets.map((ds, i) => {
+                let colors;
+                if (customColors && customColors.length > 0) {
+                    colors = BasicCharts.generateColors(customColors, data.labels.length);
+                } else {
+                    // Use different color palette offset for each ring
+                    const baseColors = this.getColorPalette(data.labels.length + i);
+                    colors = baseColors.slice(0, data.labels.length);
+                }
+
+                // Apply category colors if set
+                const categoryColors = options.categoryColors || {};
+                if (Object.keys(categoryColors).length > 0) {
+                    colors = colors.map((c, j) => categoryColors[j] || c);
+                }
+
+                // Calculate weight for each ring (outer rings are thinner)
+                const ringWeight = options.ringWeight !== undefined ? options.ringWeight : 1;
+
+                return {
+                    label: ds.label || `Ring ${i + 1}`,
+                    data: ds.data,
+                    backgroundColor: colors.map(c => this.hexToRgba(c, 0.8)),
+                    borderColor: colors,
+                    borderWidth: options.borderWidth !== undefined ? options.borderWidth : 1,
+                    weight: ringWeight
+                };
+            })
+        };
+
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: chartData,
+            options: { ...defaultOptions, ...options }
+        });
     }
 };
 
 // Export
 window.BasicCharts = BasicCharts;
+

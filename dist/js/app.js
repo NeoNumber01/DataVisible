@@ -73,6 +73,7 @@ const i18n = {
         // New chart types
         rose: '玫瑰图',
         mixed: '组合图',
+        customCombo: '自定义组合',
         horizontalBar: '水平柱状图',
         waterfall: '瀑布图',
         timeline: '时间轴图',
@@ -97,8 +98,46 @@ const i18n = {
         surface3d: '3D曲面',
         line3d: '3D折线图',
         globe: '地球仪',
+        // Extended basic charts
+        explodedPie: '分离饼图',
+        halfDoughnut: '半环形图',
+        nestedDoughnut: '嵌套环形图',
+        // Stacked chart variants
+        stackedPercent: '百分比堆积柱形',
+        stackedLine: '堆积折线图',
+        stackedPercentLine: '百分比堆积折线',
+        stackedHorizontalBar: '堆积条形图',
+        stackedPercentHorizontalBar: '百分比堆积条形',
+        stackedArea: '堆积面积图',
+        stackedPercentArea: '百分比堆积面积',
+        // Scatter variants
+        scatterSmooth: '平滑线散点图',
+        scatterLine: '直线散点图',
+        // Combo charts
+        barLine: '柱线组合',
+        areaLine: '面积线组合',
+        barArea: '柱面组合',
+        dualAxis: '双Y轴图',
+        // 3D extended charts
+        pie3d: '3D饼图',
+        wireframeSurface: '线框曲面',
+        clusteredBar3d: '三维簇状柱形图',
+        stackedBar3d: '三维堆积柱形图',
+        percentStackedBar3d: '三维百分比堆积柱形图',
+        perspectiveBar3d: '三维柱形图',
+        volumeCandlestick: '成交量K线',
+        // Category labels
         financialCharts: '金融图表',
         charts3D: '3D图表',
+        comboCharts: '组合图表',
+        // Series config panel
+        seriesConfigTitle: '系列配置',
+        chartTypeLabel: '图表类型',
+        secondaryAxisLabel: '次坐标轴',
+        barType: '柱状图',
+        lineType: '折线图',
+        areaType: '面积图',
+        scatterType: '散点图',
         // Sample data
         sales: '销售数据',
         salesDesc: '月度销售额对比',
@@ -162,6 +201,7 @@ const i18n = {
         webpDesc: '现代格式，高压缩比',
         svgDesc: '矢量图，可无限缩放',
         exportError: '导出失败',
+        svgNotSupported: '此图表不支持 SVG 导出',
         // Missing UI Translations
         layout1: '单图',
         layout2: '双图',
@@ -242,6 +282,7 @@ const i18n = {
         // New chart types
         rose: 'Rose Chart',
         mixed: 'Mixed Chart',
+        customCombo: 'Custom Combo',
         horizontalBar: 'Horizontal Bar',
         waterfall: 'Waterfall',
         timeline: 'Timeline',
@@ -266,8 +307,46 @@ const i18n = {
         surface3d: '3D Surface',
         line3d: '3D Line',
         globe: 'Globe',
+        // Extended basic charts
+        explodedPie: 'Exploded Pie',
+        halfDoughnut: 'Half Doughnut',
+        nestedDoughnut: 'Nested Doughnut',
+        // Stacked chart variants
+        stackedPercent: '100% Stacked Bar',
+        stackedLine: 'Stacked Line',
+        stackedPercentLine: '100% Stacked Line',
+        stackedHorizontalBar: 'Stacked Horizontal Bar',
+        stackedPercentHorizontalBar: '100% Stacked Horizontal Bar',
+        stackedArea: 'Stacked Area',
+        stackedPercentArea: '100% Stacked Area',
+        // Scatter variants
+        scatterSmooth: 'Smooth Scatter',
+        scatterLine: 'Line Scatter',
+        // Combo charts
+        barLine: 'Bar + Line',
+        areaLine: 'Area + Line',
+        barArea: 'Bar + Area',
+        dualAxis: 'Dual Y-Axis',
+        // 3D extended charts
+        pie3d: '3D Pie',
+        wireframeSurface: 'Wireframe Surface',
+        clusteredBar3d: '3D Clustered Bar',
+        stackedBar3d: '3D Stacked Bar',
+        percentStackedBar3d: '3D 100% Stacked Bar',
+        perspectiveBar3d: '3D Bar (Perspective)',
+        volumeCandlestick: 'Volume Candlestick',
+        // Category labels
         financialCharts: 'Financial Charts',
         charts3D: '3D Charts',
+        comboCharts: 'Combo Charts',
+        // Series config panel
+        seriesConfigTitle: 'Series Configuration',
+        chartTypeLabel: 'Chart Type',
+        secondaryAxisLabel: 'Secondary Axis',
+        barType: 'Bar',
+        lineType: 'Line',
+        areaType: 'Area',
+        scatterType: 'Scatter',
         // Sample data
         sales: 'Sales Data',
         salesDesc: 'Monthly sales comparison',
@@ -331,6 +410,7 @@ const i18n = {
         webpDesc: 'Modern format, high compression',
         svgDesc: 'Vector, infinitely scalable',
         exportError: 'Export failed',
+        svgNotSupported: 'SVG export not supported for this chart',
         // Missing UI Translations
         layout1: 'Single Chart',
         layout2: 'Double Chart',
@@ -589,7 +669,7 @@ class App {
                 } else if (action === 'togglevalues') {
                     const isShowing = this.chartRenderer.toggleShowValues(slot);
                     const t = this.getTranslations();
-                    this.showToast(isShowing ? (t.valuesShown || '数值已显示') : (t.valuesHidden || '数值已隐藏'), 'success');
+                    this.showToast(isShowing ? t.valuesShown : t.valuesHidden, 'success');
                     // Toggle button visual state
                     actionBtn.classList.toggle('active', isShowing);
                 } else if (action === 'resetzoom') {
@@ -598,8 +678,48 @@ class App {
                     this.chartRenderer.handleZoom(slot, 'in');
                 } else if (action === 'zoomout') {
                     this.chartRenderer.handleZoom(slot, 'out');
+                } else if (action === 'perspective') {
+                    // Toggle perspective popup
+                    const popup = container.querySelector('.perspective-popup');
+                    if (popup) {
+                        popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+                    }
                 }
             }
+
+            // Close perspective popup when clicking outside
+            const popup = document.querySelector('.perspective-popup[style*="block"]');
+            if (popup && !e.target.closest('.perspective-popup') && !e.target.closest('[data-action="perspective"]')) {
+                popup.style.display = 'none';
+            }
+        });
+
+        // Perspective sliders event listeners
+        document.querySelectorAll('.perspective-x, .perspective-y').forEach(slider => {
+            slider.addEventListener('input', (e) => {
+                const container = e.target.closest('.chart-container');
+                const slot = parseInt(container.id.split('-')[1]);
+                const pXSlider = container.querySelector('.perspective-x');
+                const pYSlider = container.querySelector('.perspective-y');
+
+                const xVal = parseFloat(pXSlider.value);
+                const yVal = parseFloat(pYSlider.value);
+
+                // Update value display
+                const xValDisplay = container.querySelector('.perspective-x-val');
+                const yValDisplay = container.querySelector('.perspective-y-val');
+                if (xValDisplay) xValDisplay.textContent = xVal.toFixed(2);
+                if (yValDisplay) yValDisplay.textContent = yVal.toFixed(2);
+
+                // Update options
+                let options = this.chartRenderer.chartOptions.get(slot) || {};
+                options.depthAngleX = xVal;
+                options.depthAngleY = yVal;
+                this.chartRenderer.chartOptions.set(slot, options);
+
+                // Trigger re-render
+                this.chartRenderer.renderChart(slot, this.chartRenderer.chartTypes.get(slot));
+            });
         });
 
 
@@ -743,10 +863,10 @@ class App {
         if (resetText) resetText.textContent = t.reset;
 
         const clearDataText = document.querySelector('#clearData .btn-text');
-        if (clearDataText) clearDataText.textContent = t.clearData || '清空数据';
+        if (clearDataText) clearDataText.textContent = t.clearData;
 
         const resetAllText = document.querySelector('#resetAll .btn-text');
-        if (resetAllText) resetAllText.textContent = t.resetAll || '重置一切';
+        if (resetAllText) resetAllText.textContent = t.resetAll;
 
         const exportText = document.querySelector('#exportBtn .btn-text');
         if (exportText) exportText.textContent = t.export;
@@ -758,7 +878,7 @@ class App {
         });
 
         // Update category headers
-        const categories = ['basicCharts', 'advancedCharts', 'distributionCharts', 'hierarchyCharts', 'specialCharts', 'financialCharts', 'charts3D'];
+        const categories = ['basicCharts', 'advancedCharts', 'comboCharts', 'distributionCharts', 'hierarchyCharts', 'specialCharts', 'financialCharts', 'charts3D'];
         document.querySelectorAll('.category-header').forEach((el, i) => {
             const textContainer = el.childNodes;
             for (const node of textContainer) {
@@ -866,6 +986,9 @@ class App {
                     <option value="pie">${t.pie}</option>
                     <option value="doughnut">${t.doughnut}</option>
                     <option value="horizontalBar">${t.horizontalBar}</option>
+                    <option value="explodedPie">${t.explodedPie}</option>
+                    <option value="halfDoughnut">${t.halfDoughnut}</option>
+                    <option value="nestedDoughnut">${t.nestedDoughnut}</option>
                 </optgroup>
                 <optgroup label="${t.advancedCharts}">
                     <option value="scatter">${t.scatter}</option>
@@ -876,6 +999,22 @@ class App {
                     <option value="polar">${t.polar}</option>
                     <option value="rose">${t.rose}</option>
                     <option value="mixed">${t.mixed}</option>
+                    <option value="stackedPercent">${t.stackedPercent}</option>
+                    <option value="stackedLine">${t.stackedLine}</option>
+                    <option value="stackedPercentLine">${t.stackedPercentLine}</option>
+                    <option value="stackedHorizontalBar">${t.stackedHorizontalBar}</option>
+                    <option value="stackedPercentHorizontalBar">${t.stackedPercentHorizontalBar}</option>
+                    <option value="stackedArea">${t.stackedArea}</option>
+                    <option value="stackedPercentArea">${t.stackedPercentArea}</option>
+                    <option value="scatterSmooth">${t.scatterSmooth}</option>
+                    <option value="scatterLine">${t.scatterLine}</option>
+                </optgroup>
+                <optgroup label="${t.comboCharts}">
+                    <option value="barLine">${t.barLine}</option>
+                    <option value="areaLine">${t.areaLine}</option>
+                    <option value="barArea">${t.barArea}</option>
+                    <option value="dualAxis">${t.dualAxis}</option>
+                    <option value="customCombo">${t.customCombo}</option>
                 </optgroup>
                 <optgroup label="${t.distributionCharts}">
                     <option value="boxplot">${t.boxplot}</option>
@@ -900,7 +1039,7 @@ class App {
                     <option value="pictorial">${t.pictorial}</option>
                     <option value="liquid">${t.liquid}</option>
                 </optgroup>
-                <optgroup label="${t.financialCharts || '金融图表'}">
+                <optgroup label="${t.financialCharts}">
                     <option value="candlestick">${t.candlestick}</option>
                     <option value="effectScatter">${t.effectScatter}</option>
                     <option value="bullet">${t.bullet}</option>
@@ -910,13 +1049,16 @@ class App {
                     <option value="progress">${t.progress}</option>
                     <option value="metric">${t.metric}</option>
                     <option value="sparkline">${t.sparkline}</option>
+                    <option value="volumeCandlestick">${t.volumeCandlestick}</option>
                 </optgroup>
-                <optgroup label="${t.charts3D || '3D图表'}">
+                <optgroup label="${t.charts3D}">
                     <option value="bar3d">${t.bar3d}</option>
                     <option value="scatter3d">${t.scatter3d}</option>
                     <option value="surface3d">${t.surface3d}</option>
                     <option value="line3d">${t.line3d}</option>
                     <option value="globe">${t.globe}</option>
+                    <option value="pie3d">${t.pie3d}</option>
+                    <option value="wireframeSurface">${t.wireframeSurface}</option>
                 </optgroup>
             `;
             select.value = currentValue;
@@ -995,8 +1137,8 @@ class App {
         const t = i18n[this.currentLang];
         if (fullscreenBtn) {
             fullscreenBtn.title = isFullscreen
-                ? (t.exitFullscreen || '退出全屏')
-                : (t.fullscreenMode || '全屏模式');
+                ? t.exitFullscreen
+                : t.fullscreenMode;
         }
     }
 
@@ -1166,7 +1308,7 @@ class App {
         if (csvInput) csvInput.value = '';
 
         const t = i18n[this.currentLang];
-        this.showToast(t.dataCleared || '数据已清空', 'success');
+        this.showToast(t.dataCleared, 'success');
     }
 
     /**
@@ -1207,7 +1349,7 @@ class App {
         this.chartRenderer.setData(defaultData);
 
         const t = i18n[this.currentLang];
-        this.showToast(t.allReset || '已重置所有设置', 'success');
+        this.showToast(t.allReset, 'success');
     }
 
     /**
@@ -1222,9 +1364,9 @@ class App {
         // Reset header
         const headerInputs = document.querySelectorAll('#dataTable thead .header-input');
         if (headerInputs.length >= 3) {
-            headerInputs[0].value = t.tableHeaderCategory || '类别';
-            headerInputs[1].value = t.tableHeaderValue1 || '数值1';
-            headerInputs[2].value = t.tableHeaderValue2 || '数值2';
+            headerInputs[0].value = t.tableHeaderCategory;
+            headerInputs[1].value = t.tableHeaderValue1;
+            headerInputs[2].value = t.tableHeaderValue2;
         }
 
         // Reset body with default data
@@ -1316,7 +1458,7 @@ class App {
         const t = this.getTranslations();
         const data = this.dataManager.getData();
         const seriesCount = data?.datasets?.length || 2;
-        const seriesNames = data?.datasets?.map((ds, i) => ds.label || `${t.series || '系列'} ${i + 1}`) || [];
+        const seriesNames = data?.datasets?.map((ds, i) => ds.label || `${t.series} ${i + 1}`) || [];
 
         // Get current series colors
         const currentSeriesColors = this.chartRenderer.getSeriesColors(slot);
@@ -1352,6 +1494,7 @@ class App {
         const dualSchemes = Object.entries(ChartColorsConfig.dualColorPresets).map(([key, preset]) => ({
             key: key,
             name: preset.name,
+            nameEn: preset.nameEn,
             positive: preset.positive,
             negative: preset.negative
         }));
@@ -1360,6 +1503,7 @@ class App {
         const gradientSchemes = Object.entries(ChartColorsConfig.gradientPresets).map(([key, preset]) => ({
             key: key,
             name: preset.name,
+            nameEn: preset.nameEn,
             colors: preset.colors
         }));
 
@@ -1371,7 +1515,7 @@ class App {
         popup.className = 'color-picker-popup';
         popup.innerHTML = `
             <div class="color-picker-header">
-                <span>${t.colorScheme || '配色方案'}</span>
+                <span>${t.colorScheme}</span>
                 <button class="close-picker">×</button>
             </div>
             <div class="color-mode-info" style="background:#f8fafc; padding:8px 12px; margin:-8px -12px 8px; border-radius:6px 6px 0 0; font-size:12px;">
@@ -1380,24 +1524,41 @@ class App {
             </div>
             ${isDualMode ? `
             <div class="dual-color-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">${t.dualColorSchemes || '涨跌/正负配色'}</span>
-                <div class="dual-scheme-list" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
-                    ${dualSchemes.map((scheme, idx) => `
-                        <div class="dual-scheme" data-dual="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px; display:flex; align-items:center; gap:6px;">
-                            <span class="color-dot" style="background:${scheme.positive}; width:12px; height:12px; border-radius:50%;"></span>
-                            <span class="color-dot" style="background:${scheme.negative}; width:12px; height:12px; border-radius:50%;"></span>
-                            <span style="font-size:12px;">${scheme.name}</span>
-                        </div>
-                    `).join('')}
+                <span class="section-title" style="font-size:12px; color:#64748b; display:block; margin-bottom:8px;">${t.colorConventionLabel || '颜色惯例'}</span>
+                <div class="convention-list" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                    <div class="convention-btn" data-convention="international" style="cursor:pointer; padding:8px 14px; border:2px solid #e2e8f0; border-radius:8px; display:flex; align-items:center; gap:8px; transition: all 0.2s;">
+                        <span class="color-dot" style="background:#22c55e; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #22c55e;"></span>
+                        <span class="color-dot" style="background:#ef4444; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #ef4444;"></span>
+                        <span style="font-size:13px; font-weight:500;">${this.currentLang === 'en' ? 'International' : '国际惯例'}</span>
+                        <span style="font-size:11px; color:#64748b;">${this.currentLang === 'en' ? '(Green↑ Red↓)' : '(绿涨红跌)'}</span>
+                    </div>
+                    <div class="convention-btn" data-convention="chinese" style="cursor:pointer; padding:8px 14px; border:2px solid #e2e8f0; border-radius:8px; display:flex; align-items:center; gap:8px; transition: all 0.2s;">
+                        <span class="color-dot" style="background:#ef4444; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #ef4444;"></span>
+                        <span class="color-dot" style="background:#22c55e; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px #22c55e;"></span>
+                        <span style="font-size:13px; font-weight:500;">${this.currentLang === 'en' ? 'Chinese' : '中国惯例'}</span>
+                        <span style="font-size:11px; color:#64748b;">${this.currentLang === 'en' ? '(Red↑ Green↓)' : '(红涨绿跌)'}</span>
+                    </div>
+                </div>
+                <span class="section-title" style="font-size:12px; color:#64748b; display:block; margin-bottom:8px;">${t.customDualColors || '自定义涨跌色'}</span>
+                <div class="custom-dual-colors" style="display:flex; gap:12px; align-items:center; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:12px;">${this.currentLang === 'en' ? 'Up' : '涨'}:</span>
+                        <input type="color" class="dual-up-color" value="#22c55e" style="width:32px; height:24px; border:none; cursor:pointer;">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-size:12px;">${this.currentLang === 'en' ? 'Down' : '跌'}:</span>
+                        <input type="color" class="dual-down-color" value="#ef4444" style="width:32px; height:24px; border:none; cursor:pointer;">
+                    </div>
+                    <button class="btn btn-sm btn-primary apply-dual-colors" style="margin-left:auto;">${t.apply}</button>
                 </div>
             </div>
             ` : isGradientMode ? `
             <div class="gradient-schemes">
-                <span class="section-title" style="font-size:12px; color:#64748b;">${t.gradientColorSchemes || '渐变配色'}</span>
+                <span class="section-title" style="font-size:12px; color:#64748b;">${t.gradientColorSchemes}</span>
                 <div class="gradient-scheme-list" style="display:flex; flex-direction:column; gap:6px; margin-top:8px;">
                     ${gradientSchemes.map((scheme, idx) => `
                         <div class="gradient-scheme" data-gradient="${idx}" style="cursor:pointer; padding:6px 12px; border:1px solid #e2e8f0; border-radius:6px;">
-                            <span style="font-size:12px; margin-bottom:4px; display:block;">${scheme.name}</span>
+                            <span style="font-size:12px; margin-bottom:4px; display:block;">${this.currentLang === 'en' ? scheme.nameEn : scheme.name}</span>
                             <div style="display:flex; height:16px; border-radius:4px; overflow:hidden;">
                                 ${scheme.colors.map(c => `<div style="flex:1; background:${c};"></div>`).join('')}
                             </div>
@@ -1419,7 +1580,7 @@ class App {
             `}
             ${isCategoryMode ? `
             <div class="category-colors">
-                <span class="section-title">${t.rowColors || '按类别设置颜色'}</span>
+                <span class="section-title">${t.rowColors}</span>
                 <div class="category-color-list">
                     ${categoryNames.map((name, i) => `
                         <div class="category-color-item" data-category="${i}">
@@ -1428,11 +1589,11 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply}</button>
             </div>
             ` : `
             <div class="series-colors">
-                <span class="section-title">${t.columnColors || '按列设置颜色（数据系列）'}</span>
+                <span class="section-title">${t.columnColors}</span>
                 <div class="series-color-list">
                     ${seriesNames.map((name, i) => `
                         <div class="series-color-item" data-series="${i}">
@@ -1441,10 +1602,10 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-series-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-series-colors">${t.apply}</button>
             </div>
             <div class="category-colors">
-                <span class="section-title">${t.rowColors || '按行设置颜色（数据类别）'}</span>
+                <span class="section-title">${t.rowColors}</span>
                 <div class="category-color-list">
                     ${categoryNames.map((name, i) => `
                         <div class="category-color-item" data-category="${i}">
@@ -1453,11 +1614,11 @@ class App {
                         </div>
                     `).join('')}
                 </div>
-                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply || '应用'}</button>
+                <button class="btn btn-sm btn-primary apply-category-colors">${t.apply}</button>
             </div>
             `}
             <div class="color-picker-actions">
-                <button class="btn btn-sm btn-secondary reset-colors">${t.resetColors || '重置颜色'}</button>
+                <button class="btn btn-sm btn-secondary reset-colors">${t.resetColors}</button>
             </div>
         `;
 
@@ -1483,15 +1644,66 @@ class App {
             };
         });
 
-        // Dual color scheme event handlers
-        popup.querySelectorAll('.dual-scheme').forEach(scheme => {
-            scheme.onclick = () => {
-                const idx = parseInt(scheme.dataset.dual);
-                const dual = dualSchemes[idx];
-                this.applyColorScheme(slot, [dual.positive, dual.negative]);
-                popup.remove();
+        // Color convention event handlers (for dual-color charts like candlestick)
+        popup.querySelectorAll('.convention-btn').forEach(btn => {
+            btn.onclick = () => {
+                const convention = btn.dataset.convention;
+                // Update visual selection
+                popup.querySelectorAll('.convention-btn').forEach(b => b.style.borderColor = '#e2e8f0');
+                btn.style.borderColor = '#6366f1';
+
+                // Determine colors based on convention
+                let upColor, downColor;
+                if (convention === 'chinese') {
+                    upColor = '#ef4444';  // Red up
+                    downColor = '#22c55e'; // Green down
+                } else {
+                    upColor = '#22c55e';  // Green up
+                    downColor = '#ef4444'; // Red down
+                }
+
+                // Update custom color inputs to match
+                const upInput = popup.querySelector('.dual-up-color');
+                const downInput = popup.querySelector('.dual-down-color');
+                if (upInput) upInput.value = upColor;
+                if (downInput) downInput.value = downColor;
+
+                // Apply colors AND set colorConvention option
+                this.chartRenderer.setColors(slot, [upColor, downColor]);
+
+                // Update chart options with colorConvention
+                const currentOptions = this.chartRenderer.getOptions(slot) || {};
+                currentOptions.colorConvention = convention;
+                this.chartRenderer.setOptions(slot, currentOptions);
+
+                this.saveChartConfigurations();
+                this.showToast(this.getTranslations().colorsApplied, 'success');
             };
         });
+
+        // Custom dual color apply button
+        const applyDualBtn = popup.querySelector('.apply-dual-colors');
+        if (applyDualBtn) {
+            applyDualBtn.onclick = () => {
+                const upColor = popup.querySelector('.dual-up-color')?.value || '#22c55e';
+                const downColor = popup.querySelector('.dual-down-color')?.value || '#ef4444';
+
+                // Clear convention selection (user is using custom colors)
+                popup.querySelectorAll('.convention-btn').forEach(b => b.style.borderColor = '#e2e8f0');
+
+                // Apply custom colors and clear colorConvention
+                this.chartRenderer.setColors(slot, [upColor, downColor]);
+
+                // Remove colorConvention from options (custom colors take precedence)
+                const currentOptions = this.chartRenderer.getOptions(slot) || {};
+                delete currentOptions.colorConvention;
+                this.chartRenderer.setOptions(slot, currentOptions);
+
+                this.saveChartConfigurations();
+                this.showToast(this.getTranslations().colorsApplied, 'success');
+                popup.remove();
+            };
+        }
 
         // Gradient color scheme event handlers
         popup.querySelectorAll('.gradient-scheme').forEach(scheme => {
@@ -1513,7 +1725,7 @@ class App {
                 });
                 // Save configuration after applying series colors
                 this.saveChartConfigurations();
-                this.showToast(t.colorsApplied || '配色已应用', 'success');
+                this.showToast(t.colorsApplied, 'success');
                 popup.remove();
             };
         }
@@ -1529,7 +1741,7 @@ class App {
                 });
                 // Save configuration after applying category colors
                 this.saveChartConfigurations();
-                this.showToast(t.colorsApplied || '配色已应用', 'success');
+                this.showToast(t.colorsApplied, 'success');
                 popup.remove();
             };
         }
@@ -1539,7 +1751,7 @@ class App {
             this.chartRenderer.clearCustomColors(slot);
             // Save configuration after resetting colors
             this.saveChartConfigurations();
-            this.showToast(t.colorsReset || '颜色已重置', 'success');
+            this.showToast(t.colorsReset, 'success');
             popup.remove();
         };
 
@@ -1566,7 +1778,7 @@ class App {
         this.chartRenderer.setColors(slot, colors, schemeKey);
         // Save configuration after applying colors
         this.saveChartConfigurations();
-        this.showToast(this.getTranslations().colorsApplied || '配色已应用', 'success');
+        this.showToast(this.getTranslations().colorsApplied, 'success');
     }
 
 
@@ -1584,19 +1796,68 @@ class App {
         // Generate options HTML using ChartOptions module
         const optionsHTML = ChartOptions.generatePanelHTML(chartType, currentOptions, this.currentLang);
 
+        // Generate series config HTML for customCombo
+        let seriesConfigHTML = '';
+        if (chartType === 'customCombo' && this.chartRenderer.data && this.chartRenderer.data.datasets) {
+            const seriesConfig = this.chartRenderer.getSeriesConfig(slot);
+            const datasets = this.chartRenderer.data.datasets;
+
+            seriesConfigHTML = `
+                <div class="series-config-section">
+                    <div class="option-label" style="font-weight: 600; margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">
+                        ${t.seriesConfigTitle || '系列配置'}
+                    </div>
+                    <table class="series-config-table" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: var(--bg-secondary);">
+                                <th style="padding: 6px; text-align: left;">${t.series || '系列'}</th>
+                                <th style="padding: 6px; text-align: center;">${t.chartTypeLabel || '图表类型'}</th>
+                                <th style="padding: 6px; text-align: center;">${t.secondaryAxisLabel || '次坐标轴'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${datasets.map((ds, i) => {
+                const cfg = seriesConfig[i] || { type: i === 0 ? 'bar' : 'line', axis: 'primary' };
+                return `
+                                    <tr data-series-index="${i}">
+                                        <td style="padding: 6px;">
+                                            <span style="display: inline-block; width: 12px; height: 12px; background: ${BasicCharts.getColorPalette(datasets.length)[i]}; border-radius: 2px; margin-right: 6px; vertical-align: middle;"></span>
+                                            ${ds.label || '系列 ' + (i + 1)}
+                                        </td>
+                                        <td style="padding: 6px; text-align: center;">
+                                            <select class="series-type-select" data-series="${i}" style="padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary);">
+                                                <option value="bar" ${cfg.type === 'bar' ? 'selected' : ''}>${t.barType || '柱状图'}</option>
+                                                <option value="line" ${cfg.type === 'line' ? 'selected' : ''}>${t.lineType || '折线图'}</option>
+                                                <option value="area" ${cfg.type === 'area' ? 'selected' : ''}>${t.areaType || '面积图'}</option>
+                                                <option value="scatter" ${cfg.type === 'scatter' ? 'selected' : ''}>${t.scatterType || '散点图'}</option>
+                                            </select>
+                                        </td>
+                                        <td style="padding: 6px; text-align: center;">
+                                            <input type="checkbox" class="series-axis-toggle" data-series="${i}" ${cfg.axis === 'secondary' ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
+                                        </td>
+                                    </tr>
+                                `;
+            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
         const popup = document.createElement('div');
         popup.className = 'chart-options-popup';
         popup.innerHTML = `
             <div class="options-panel-header">
-                <span>${t.chartSettings || '图表设置'}</span>
+                <span>${t.chartSettings}</span>
                 <button class="close-options">×</button>
             </div>
             <div class="options-panel-body">
-                ${optionsHTML || `<p style="color: var(--text-tertiary); text-align: center;">${t.noOptions || '此图表暂无可调选项'}</p>`}
+                ${seriesConfigHTML}
+                ${optionsHTML || (seriesConfigHTML ? '' : `<p style="color: var(--text-tertiary); text-align: center;">${t.noOptions}</p>`)}
             </div>
             <div class="options-panel-footer">
-                <button class="btn-reset-options">${t.reset || '重置'}</button>
-                <button class="btn-apply-options">${t.apply || '应用'}</button>
+                <button class="btn-reset-options">${t.reset}</button>
+                <button class="btn-apply-options">${t.apply}</button>
             </div>
         `;
 
@@ -1691,10 +1952,25 @@ class App {
         // Apply button
         popup.querySelector('.btn-apply-options').onclick = () => {
             const values = ChartOptions.parseValues(popup.querySelector('.options-panel-body'));
+
+            // Parse series config for customCombo
+            if (chartType === 'customCombo') {
+                const seriesConfig = {};
+                popup.querySelectorAll('.series-type-select').forEach(select => {
+                    const idx = parseInt(select.dataset.series);
+                    const axisCheckbox = popup.querySelector(`.series-axis-toggle[data-series="${idx}"]`);
+                    seriesConfig[idx] = {
+                        type: select.value,
+                        axis: axisCheckbox?.checked ? 'secondary' : 'primary'
+                    };
+                });
+                values.seriesConfig = seriesConfig;
+            }
+
             this.chartRenderer.setOptions(slot, values);
             // Save configuration after applying options
             this.saveChartConfigurations();
-            this.showToast(t.optionsApplied || '设置已应用', 'success');
+            this.showToast(t.optionsApplied, 'success');
             popup.remove();
         };
 
@@ -1727,41 +2003,41 @@ class App {
         menu.className = 'export-format-menu';
         menu.innerHTML = `
             <div class="export-menu-header">
-                <span>${t.selectExportFormat || '选择导出格式'}</span>
+                <span>${t.selectExportFormat}</span>
                 <button class="close-export-menu">×</button>
             </div>
             <div class="export-formats">
                 <button class="export-format-btn" data-format="png" data-mime="image/png">
                     <span class="format-icon">🖼️</span>
                     <span class="format-name">PNG</span>
-                    <span class="format-desc">${t.pngDesc || '无损压缩，支持透明'}</span>
+                    <span class="format-desc">${t.pngDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="jpg" data-mime="image/jpeg">
                     <span class="format-icon">📷</span>
                     <span class="format-name">JPG / JPEG</span>
-                    <span class="format-desc">${t.jpgDesc || '有损压缩，文件更小'}</span>
+                    <span class="format-desc">${t.jpgDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="webp" data-mime="image/webp">
                     <span class="format-icon">🌐</span>
                     <span class="format-name">WebP</span>
-                    <span class="format-desc">${t.webpDesc || '现代格式，高压缩比'}</span>
+                    <span class="format-desc">${t.webpDesc}</span>
                 </button>
                 <button class="export-format-btn" data-format="svg" data-mime="image/svg+xml">
                     <span class="format-icon">📐</span>
                     <span class="format-name">SVG</span>
-                    <span class="format-desc">${t.svgDesc || '矢量图，可无限缩放'}</span>
+                    <span class="format-desc">${t.svgDesc}</span>
                 </button>
             </div>
             <div class="export-quality-section">
                 <label class="quality-label">
-                    <span>${t.exportQuality || '导出质量'}</span>
+                    <span>${t.exportQuality}</span>
                     <span class="quality-value">90%</span>
                 </label>
                 <input type="range" class="quality-slider" min="10" max="100" value="90" step="5">
             </div>
             <div class="export-scale-section">
                 <label class="scale-label">
-                    <span>${t.exportScale || '导出倍率'}</span>
+                    <span>${t.exportScale}</span>
                     <span class="scale-value">2x</span>
                 </label>
                 <input type="range" class="scale-slider" min="1" max="4" value="2" step="0.5">

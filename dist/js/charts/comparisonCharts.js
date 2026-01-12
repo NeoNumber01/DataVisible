@@ -9,6 +9,11 @@ const ComparisonCharts = {
      * Create a box plot using ECharts
      */
     createBoxplotChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -23,6 +28,9 @@ const ComparisonCharts = {
 
         const mainColor = customColors ? customColors[0] : '#6366f1';
         const borderColor = customColors ? customColors[1] || customColors[0] : '#4f46e5';
+
+        // Apply fillOpacity option (default 0.8)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.8;
 
         // 按类别（labels）计算箱线图数据
         // 每个类别收集所有 series 的数据点来计算统计值
@@ -97,7 +105,10 @@ const ComparisonCharts = {
             yAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
             dataZoom: [
                 {
@@ -120,7 +131,7 @@ const ComparisonCharts = {
                     data: boxData,
                     boxWidth: [boxWidth + '%', boxWidth + '%'],
                     itemStyle: {
-                        color: mainColor,
+                        color: BasicCharts.hexToRgba(mainColor, fillOpacity),
                         borderColor: borderColor,
                         borderWidth: 2
                     },
@@ -159,7 +170,7 @@ const ComparisonCharts = {
             ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -167,6 +178,11 @@ const ComparisonCharts = {
      * Create a heatmap using ECharts
      */
     createHeatmapChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -268,7 +284,7 @@ const ComparisonCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -276,6 +292,11 @@ const ComparisonCharts = {
      * Create a funnel chart using ECharts
      */
     createFunnelChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -303,6 +324,9 @@ const ComparisonCharts = {
         } else {
             colors = BasicCharts.getColorPalette(funnelData.length);
         }
+
+        // Apply fillOpacity option (default 0.85)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.85;
 
         const option = {
             tooltip: {
@@ -352,13 +376,13 @@ const ComparisonCharts = {
                 data: funnelData.map((d, i) => ({
                     ...d,
                     itemStyle: {
-                        color: colors[i % colors.length]
+                        color: BasicCharts.hexToRgba(colors[i % colors.length], fillOpacity)
                     }
                 }))
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -366,6 +390,11 @@ const ComparisonCharts = {
      * Create a treemap using ECharts
      */
     createTreemapChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -383,6 +412,11 @@ const ComparisonCharts = {
         } else {
             colors = BasicCharts.getColorPalette(10);
         }
+
+        // Apply fillOpacity option (default 0.9)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.9;
+        // Apply fillOpacity to colors
+        const colorsWithOpacity = colors.map(c => BasicCharts.hexToRgba(c, fillOpacity));
 
         // Convert standard data to treemap format
         let treemapData;
@@ -455,11 +489,11 @@ const ComparisonCharts = {
                         }
                     }
                 ],
-                color: colors
+                color: colorsWithOpacity
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -467,6 +501,11 @@ const ComparisonCharts = {
      * Create a sunburst chart using ECharts
      */
     createSunburstChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -498,6 +537,10 @@ const ComparisonCharts = {
             colors = BasicCharts.getColorPalette(sunburstData.length);
         }
 
+        // Apply fillOpacity option (default 0.85)
+        const fillOpacity = options.fillOpacity !== undefined ? options.fillOpacity : 0.85;
+        const colorsWithOpacity = colors.map(c => BasicCharts.hexToRgba(c, fillOpacity));
+
         const option = {
             tooltip: {
                 formatter: '{b}: {c}',
@@ -505,7 +548,7 @@ const ComparisonCharts = {
                 borderWidth: 0,
                 textStyle: { color: '#fff' }
             },
-            color: colors,
+            color: colorsWithOpacity,
             series: [{
                 type: 'sunburst',
                 data: sunburstData,
@@ -557,7 +600,7 @@ const ComparisonCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -565,6 +608,11 @@ const ComparisonCharts = {
      * Create a sankey diagram using ECharts
      */
     createSankeyChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -653,7 +701,7 @@ const ComparisonCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -661,6 +709,11 @@ const ComparisonCharts = {
      * Create a gauge chart using ECharts
      */
     createGaugeChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -764,7 +817,7 @@ const ComparisonCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -772,6 +825,11 @@ const ComparisonCharts = {
      * Create a word cloud using ECharts
      */
     createWordCloudChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -861,7 +919,7 @@ const ComparisonCharts = {
             option.yAxis = { type: 'value' };
         }
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 

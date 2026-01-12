@@ -494,13 +494,40 @@ body.panel-collapsed .main-container {
     border-color: var(--border-hover);
 }
 
+/* Fullscreen mode for chart container */
+.chart-container.fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    background: var(--bg-secondary);
+}
+
+.chart-container.fullscreen .chart-wrapper {
+    flex: 1;
+    height: calc(100vh - 60px) !important;
+}
+
+.chart-container.fullscreen .echart-container,
+.chart-container.fullscreen canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
 .chart-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-tertiary);
+    flex-wrap: wrap;
 }
 
 .chart-type-select {
@@ -511,11 +538,13 @@ body.panel-collapsed .main-container {
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
     cursor: pointer;
+    min-width: 120px;
 }
 
 .chart-actions {
     display: flex;
-    gap: 8px;
+    gap: 4px;
+    margin-left: auto;
 }
 
 .chart-action-btn {
@@ -1874,4 +1903,90 @@ body.panel-collapsed {
     border: none;
     cursor: pointer;
     box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   3D Perspective Control Panel
+   ======================================== */
+.perspective-popup {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    width: 220px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 15px;
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+}
+
+.perspective-popup .popup-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.perspective-popup .settings-group {
+    margin-bottom: 12px;
+}
+
+.perspective-popup .settings-group:last-child {
+    margin-bottom: 0;
+}
+
+.perspective-popup label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.perspective-popup .value-display {
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.perspective-popup input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Highlight the perspective button */
+.perspective-btn {
+    display: none;
+    /* Hidden by default, shown via JS for pseudo 3D charts */
+    background: var(--gradient-primary) !important;
+}
+
+.perspective-btn svg {
+    color: white !important;
+}
+
+/* Zoom Indicator */
+.zoom-indicator {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+}
+
+/* Zoom cursor states */
+.chart-wrapper.zoom-active {
+    cursor: grab;
+}
+
+.chart-wrapper.zoom-active:active {
+    cursor: grabbing;
 }

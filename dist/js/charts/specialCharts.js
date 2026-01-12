@@ -10,6 +10,11 @@ const SpecialCharts = {
      * 瀑布图 - 显示数据的增减变化
      */
     createWaterfallChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -84,7 +89,7 @@ const SpecialCharts = {
                 textStyle: { color: '#fff' }
             },
             legend: {
-                data: ['增加', '减少', '总计']
+                data: ['Increase', 'Decrease', 'Total']
             },
             grid: {
                 left: '10%',
@@ -100,7 +105,10 @@ const SpecialCharts = {
             yAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
             dataZoom: [
                 {
@@ -118,7 +126,7 @@ const SpecialCharts = {
             ],
             series: [
                 {
-                    name: '辅助',
+                    name: 'Helper',
                     type: 'bar',
                     stack: 'Total',
                     itemStyle: {
@@ -134,7 +142,7 @@ const SpecialCharts = {
                     data: totalData
                 },
                 {
-                    name: '增加',
+                    name: 'Increase',
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
@@ -143,7 +151,7 @@ const SpecialCharts = {
                     data: positiveData
                 },
                 {
-                    name: '减少',
+                    name: 'Decrease',
                     type: 'bar',
                     stack: 'Total',
                     barWidth: barWidth,
@@ -154,7 +162,7 @@ const SpecialCharts = {
             ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -163,6 +171,11 @@ const SpecialCharts = {
      * 时间轴图
      */
     createTimelineChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         const dataset = data.datasets[0] || { data: [] };
@@ -208,7 +221,10 @@ const SpecialCharts = {
             yAxis: {
                 type: 'value',
                 axisLine: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
             dataZoom: [
                 {
@@ -255,7 +271,7 @@ const SpecialCharts = {
             }))
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -264,6 +280,11 @@ const SpecialCharts = {
      * 关系图/网络图
      */
     createGraphChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -372,7 +393,7 @@ const SpecialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -381,6 +402,11 @@ const SpecialCharts = {
      * 简单地图 - 注意：需要加载地图数据
      */
     createMapChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -489,7 +515,9 @@ const SpecialCharts = {
                 itemStyle: {
                     color: function (params) {
                         const customColors = Array.isArray(options) ? options : options?.customColors;
-                        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+                        const colors = (customColors && customColors.length > 0)
+                            ? BasicCharts.generateColors(customColors, data.labels.length)
+                            : BasicCharts.getColorPalette(data.labels.length);
                         return colors[params.dataIndex % colors.length];
                     }
                 }
@@ -502,13 +530,13 @@ const SpecialCharts = {
             option.yAxis = { type: 'value' };
             option.visualMap = undefined;
             option.title = {
-                text: '地图数据（需加载地图资源）',
+                text: 'Map Data (geo resource required)',
                 left: 'center',
                 textStyle: { color: '#999', fontSize: 14 }
             };
         }
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -517,6 +545,11 @@ const SpecialCharts = {
      * 平行坐标图 - 多维数据可视化
      */
     createParallelChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -616,7 +649,7 @@ const SpecialCharts = {
             }))
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -625,6 +658,11 @@ const SpecialCharts = {
      * 日历热力图
      */
     createCalendarChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -707,10 +745,10 @@ const SpecialCharts = {
                 yearLabel: { show: true },
                 dayLabel: {
                     firstDay: 1,
-                    nameMap: ['日', '一', '二', '三', '四', '五', '六']
+                    nameMap: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
                 },
                 monthLabel: {
-                    nameMap: 'cn'
+                    nameMap: 'en'
                 }
             },
             series: [{
@@ -724,7 +762,7 @@ const SpecialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -733,6 +771,11 @@ const SpecialCharts = {
      * 河流图/主题河流
      */
     createThemeRiverChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -830,7 +873,7 @@ const SpecialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -839,6 +882,11 @@ const SpecialCharts = {
      * 象形柱图
      */
     createPictorialBarChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         const dataset = data.datasets[0] || { data: [] };
@@ -853,7 +901,12 @@ const SpecialCharts = {
         const labelFontWeight = options.labelFontWeight || 'bold';
         const labelColor = options.labelColor || '#333';
 
-        const colors = customColors || BasicCharts.getColorPalette(data.labels.length);
+        let colors;
+        if (customColors && customColors.length > 0) {
+            colors = BasicCharts.generateColors(customColors, data.labels.length);
+        } else {
+            colors = BasicCharts.getColorPalette(data.labels.length);
+        }
 
         const option = {
             tooltip: {
@@ -873,7 +926,10 @@ const SpecialCharts = {
                 type: 'value',
                 axisLine: { show: false },
                 axisTick: { show: false },
-                splitLine: { lineStyle: { color: '#eee' } }
+                splitLine: { lineStyle: { color: '#eee' } },
+                min: options.xAxisMin !== undefined && options.xAxisMin !== null ? options.xAxisMin : undefined,
+                max: options.xAxisMax !== undefined && options.xAxisMax !== null ? options.xAxisMax : undefined,
+                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
             },
             yAxis: {
                 type: 'category',
@@ -916,7 +972,7 @@ const SpecialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -925,6 +981,11 @@ const SpecialCharts = {
      * 水球图 - 百分比展示
      */
     createLiquidChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         const dataset = data.datasets[0] || { data: [50] };
@@ -993,7 +1054,7 @@ const SpecialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     }
 };

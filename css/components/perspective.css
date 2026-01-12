@@ -1,0 +1,61 @@
+/* 3D Perspective Control Panel */
+.perspective-popup {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    width: 220px;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+}
+
+[data-theme='dark'] .perspective-popup {
+    background: var(--bg-secondary, #1e293b);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.perspective-popup .popup-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    color: var(--text-primary, #333);
+}
+
+.perspective-popup .settings-group {
+    margin-bottom: 12px;
+}
+
+.perspective-popup .settings-group:last-child {
+    margin-bottom: 0;
+}
+
+.perspective-popup label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+}
+
+.perspective-popup .value-display {
+    font-weight: 600;
+    color: var(--accent-primary, #6366f1);
+}
+
+.perspective-popup input[type="range"] {
+    width: 100%;
+    cursor: pointer;
+}
+
+/* Highlight the perspective button for 3D charts */
+.perspective-btn {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%) !important;
+}
+
+.perspective-btn svg {
+    color: white !important;
+}

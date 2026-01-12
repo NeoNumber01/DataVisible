@@ -3,12 +3,52 @@
  * K-Line/Candlestick, Effect Scatter, etc.
  */
 
+/**
+ * Helper function to get axis style configuration for ECharts
+ * @param {Object} options - Chart options containing axis style settings
+ * @returns {Object} Axis style configuration for ECharts xAxis and yAxis
+ */
+function getFinancialAxisStyleConfig(options) {
+    const axisFontSize = options.axisFontSize || 12;
+    const axisFontColor = options.axisFontColor || '#666666';
+    const axisFontWeight = options.axisFontWeight || 'normal';
+    const axisLineWidth = options.axisLineWidth !== undefined ? options.axisLineWidth : 1;
+    const axisLineColor = options.axisLineColor || '#cccccc';
+    const gridLineWidth = options.gridLineWidth !== undefined ? options.gridLineWidth : 1;
+    const gridLineColor = options.gridLineColor || '#eeeeee';
+
+    return {
+        axisLine: {
+            lineStyle: {
+                color: axisLineColor,
+                width: axisLineWidth
+            }
+        },
+        axisLabel: {
+            fontSize: axisFontSize,
+            fontWeight: axisFontWeight,
+            color: axisFontColor
+        },
+        splitLine: {
+            lineStyle: {
+                color: gridLineColor,
+                width: gridLineWidth
+            }
+        }
+    };
+}
+
 const FinancialCharts = {
     /**
      * Create a candlestick/K-line chart
      * K线图 - 股票蜡烛图
      */
     createCandlestickChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -23,22 +63,33 @@ const FinancialCharts = {
         const labelColor = options.labelColor || 'inherit'; // Inherit from item color by default for K-line
 
         // Dual color support: positive (up), negative (down)
-        // Use ChartColorsConfig for consistent dual color strategy
-        let dualColors = { positive: '#ef4444', negative: '#22c55e' }; // Default Red/Green
+        // Priority: customColors (from color picker) > colorConvention (from options)
+        // This implements "whoever sets last takes effect"
+        const colorConvention = options.colorConvention || 'international';
 
-        if (typeof ChartColorsConfig !== 'undefined') {
-            // If getRecommendedColors suggests a dual palette, use it
-            const rec = ChartColorsConfig.getRecommendedColors('candlestick', 2);
-            if (rec && rec.length >= 2) {
-                // Assuming the config returns [positive, negative] for candlestick
-                dualColors = { positive: rec[0], negative: rec[1] };
-            } else if (ChartColorsConfig.dualColorPresets && ChartColorsConfig.dualColorPresets.redGreen) {
-                dualColors = ChartColorsConfig.dualColorPresets.redGreen;
-            }
+        // Determine base colors from convention
+        let dualColors;
+        if (colorConvention === 'chinese') {
+            // Chinese convention: red = up, green = down
+            dualColors = { positive: '#ef4444', negative: '#22c55e' };
+        } else {
+            // International convention: green = up, red = down
+            dualColors = { positive: '#22c55e', negative: '#ef4444' };
         }
 
-        const upColor = customColors && customColors[0] ? customColors[0] : dualColors.positive;
-        const downColor = customColors && customColors[1] ? customColors[1] : dualColors.negative;
+        // customColors take absolute precedence when set (user explicitly picked colors)
+        // This means: if user sets custom colors, those are used regardless of colorConvention
+        // If user sets colorConvention, the corresponding colors are applied as customColors
+        let upColor, downColor;
+        if (customColors && customColors.length >= 2) {
+            // User has set custom colors - use them directly
+            upColor = customColors[0];
+            downColor = customColors[1];
+        } else {
+            // No custom colors - use convention colors
+            upColor = dualColors.positive;
+            downColor = dualColors.negative;
+        }
 
         // Convert data to OHLC format (Open, Close, Low, High)
         // If standard format, simulate OHLC from values
@@ -89,19 +140,27 @@ const FinancialCharts = {
                 right: '10%',
                 bottom: '15%'
             },
-            xAxis: {
-                type: 'category',
-                data: data.labels,
-                axisLine: { lineStyle: { color: '#8392A5' } }
-            },
-            yAxis: {
-                scale: true,
-                axisLine: { lineStyle: { color: '#8392A5' } },
-                splitLine: { lineStyle: { color: '#eee' } },
-                min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
-                max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
-                interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
-            },
+            xAxis: (() => {
+                const axisStyle = getFinancialAxisStyleConfig(options);
+                return {
+                    type: 'category',
+                    data: data.labels,
+                    axisLine: axisStyle.axisLine,
+                    axisLabel: axisStyle.axisLabel
+                };
+            })(),
+            yAxis: (() => {
+                const axisStyle = getFinancialAxisStyleConfig(options);
+                return {
+                    scale: true,
+                    axisLine: axisStyle.axisLine,
+                    axisLabel: axisStyle.axisLabel,
+                    splitLine: axisStyle.splitLine,
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined,
+                    interval: options.yAxisStep !== undefined && options.yAxisStep !== null ? options.yAxisStep : undefined
+                };
+            })(),
             dataZoom: [
                 {
                     type: 'inside',
@@ -156,7 +215,7 @@ const FinancialCharts = {
             ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -184,6 +243,11 @@ const FinancialCharts = {
      * 涟漪散点图 - 带动画效果
      */
     createEffectScatterChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         const dataset = data.datasets[0] || { data: [] };
@@ -271,7 +335,7 @@ const FinancialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -280,6 +344,11 @@ const FinancialCharts = {
      * 子弹图 - 目标进度对比
      */
     createBulletChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Support custom colors from options
@@ -378,7 +447,7 @@ const FinancialCharts = {
             ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -387,6 +456,11 @@ const FinancialCharts = {
      * 步骤图/阶梯图
      */
     createStepLineChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -469,7 +543,7 @@ const FinancialCharts = {
             }))
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -478,6 +552,11 @@ const FinancialCharts = {
      * 直方图 - 数据分布
      */
     createHistogramChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -590,7 +669,7 @@ const FinancialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -599,6 +678,11 @@ const FinancialCharts = {
      * 树图 - 层级结构
      */
     createTreeChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         // Parse options - support both array (colors) and object format
@@ -704,7 +788,7 @@ const FinancialCharts = {
             }]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -713,6 +797,11 @@ const FinancialCharts = {
      * 进度条图
      */
     createProgressChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
         const chart = echarts.init(container);
 
         const dataset = data.datasets[0] || { data: [] };
@@ -814,7 +903,7 @@ const FinancialCharts = {
             ]
         };
 
-        chart.setOption(option);
+        chart.setOption(option, true);
         return chart;
     },
 
@@ -960,8 +1049,234 @@ const FinancialCharts = {
 
         container.appendChild(wrapper);
         return { destroy: () => container.innerHTML = '' };
+    },
+
+    /**
+     * Create a Volume Candlestick Chart (成交量K线图)
+     * Combines candlestick chart with volume bar chart in a split view
+     */
+    createVolumeCandlestickChart(container, data, options = {}) {
+        // 安全清理：如果容器已有 ECharts 实例，先销毁它
+        const existingChart = echarts.getInstanceByDom(container);
+        if (existingChart) {
+            existingChart.dispose();
+        }
+        const chart = echarts.init(container);
+
+        // Parse options
+        const customColors = Array.isArray(options) ? options : options?.customColors;
+        const maPeriod1 = options.maPeriod1 || 5;
+        const maPeriod2 = options.maPeriod2 || 10;
+        const showValues = options.showValues !== undefined ? options.showValues : false;
+        const labelFontSize = options.labelFontSize || 12;
+        const labelFontWeight = options.labelFontWeight || 'bold';
+        const labelColor = options.labelColor || 'inherit';
+
+        // Dual color support for candlestick (up/down)
+        // Priority: customColors (from color picker) > colorConvention (from options)
+        // This implements "whoever sets last takes effect"
+        const colorConvention = options.colorConvention || 'international';
+
+        // Determine base colors from convention
+        let dualColors;
+        if (colorConvention === 'chinese') {
+            // Chinese convention: red = up, green = down
+            dualColors = { positive: '#ef4444', negative: '#22c55e' };
+        } else {
+            // International convention: green = up, red = down
+            dualColors = { positive: '#22c55e', negative: '#ef4444' };
+        }
+
+        // customColors take absolute precedence when set (user explicitly picked colors)
+        // This means: if user sets custom colors, those are used regardless of colorConvention
+        // If user sets colorConvention, the corresponding colors are applied as customColors
+        let upColor, downColor;
+        if (customColors && customColors.length >= 2) {
+            // User has set custom colors - use them directly
+            upColor = customColors[0];
+            downColor = customColors[1];
+        } else {
+            // No custom colors - use convention colors
+            upColor = dualColors.positive;
+            downColor = dualColors.negative;
+        }
+
+        // MA line colors - can be customized via customColors[2] and customColors[3]
+        // These are NOT affected by colorConvention
+        const ma1Color = customColors && customColors[2] ? customColors[2] : '#6366f1';
+        const ma2Color = customColors && customColors[3] ? customColors[3] : '#f97316';
+
+        // Convert data to OHLC format
+        let ohlcData;
+        if (data.datasets[0]?.ohlc) {
+            ohlcData = data.datasets[0].ohlc;
+        } else {
+            // Generate simulated OHLC from single values
+            const values = data.datasets[0]?.data || [];
+            ohlcData = values.map((val, i) => {
+                let direction = Math.random() > 0.5 ? 1 : -1;
+                let variance = 0.03 + Math.random() * 0.12;
+                const open = val * (1 + direction * variance);
+                const close = val;
+                const bodyMin = Math.min(open, close);
+                const bodyMax = Math.max(open, close);
+                const low = bodyMin * (0.92 + Math.random() * 0.05);
+                const high = bodyMax * (1.03 + Math.random() * 0.05);
+                return [open, close, low, high];
+            });
+        }
+
+        // Generate volume data if not provided
+        let volumeData;
+        if (data.datasets[1]?.data) {
+            volumeData = data.datasets[1].data;
+        } else {
+            // Simulate volume based on price range
+            volumeData = ohlcData.map((ohlc, i) => {
+                const priceRange = Math.abs(ohlc[3] - ohlc[2]);
+                return Math.round(priceRange * 1000 + Math.random() * 500);
+            });
+        }
+
+        // Determine volume bar colors based on price direction
+        // upColor for price going up, downColor for price going down
+        const volumeColorData = ohlcData.map((ohlc) => {
+            // ohlc[0] = open, ohlc[1] = close
+            return ohlc[1] >= ohlc[0] ? upColor : downColor;
+        });
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'cross' },
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                borderWidth: 0,
+                textStyle: { color: '#fff' }
+            },
+            legend: {
+                data: ['Candlestick', `MA${maPeriod1}`, `MA${maPeriod2}`, 'Volume']
+            },
+            grid: [
+                {
+                    left: '10%',
+                    right: '10%',
+                    top: '10%',
+                    height: '50%'
+                },
+                {
+                    left: '10%',
+                    right: '10%',
+                    top: '70%',
+                    height: '15%'
+                }
+            ],
+            xAxis: [
+                {
+                    type: 'category',
+                    data: data.labels,
+                    axisLine: { lineStyle: { color: '#8392A5' } },
+                    gridIndex: 0
+                },
+                {
+                    type: 'category',
+                    data: data.labels,
+                    axisLine: { lineStyle: { color: '#8392A5' } },
+                    gridIndex: 1
+                }
+            ],
+            yAxis: [
+                {
+                    scale: true,
+                    axisLine: { lineStyle: { color: '#8392A5' } },
+                    splitLine: { lineStyle: { color: '#eee' } },
+                    gridIndex: 0,
+                    min: options.yAxisMin !== undefined && options.yAxisMin !== null ? options.yAxisMin : undefined,
+                    max: options.yAxisMax !== undefined && options.yAxisMax !== null ? options.yAxisMax : undefined
+                },
+                {
+                    scale: true,
+                    axisLine: { lineStyle: { color: '#8392A5' } },
+                    splitLine: { show: false },
+                    gridIndex: 1
+                }
+            ],
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: [0, 1],
+                    start: 50,
+                    end: 100,
+                    zoomOnMouseWheel: false
+                },
+                {
+                    show: true,
+                    type: 'slider',
+                    xAxisIndex: [0, 1],
+                    bottom: 5,
+                    start: 50,
+                    end: 100
+                }
+            ],
+            series: [
+                {
+                    name: 'Candlestick',
+                    type: 'candlestick',
+                    data: ohlcData,
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                    label: {
+                        show: showValues,
+                        position: 'top',
+                        formatter: (params) => params.value ? params.value[1] : '',
+                        fontSize: labelFontSize,
+                        fontWeight: labelFontWeight,
+                        color: labelColor
+                    },
+                    itemStyle: {
+                        color: upColor,
+                        color0: downColor,
+                        borderColor: upColor,
+                        borderColor0: downColor
+                    }
+                },
+                {
+                    name: `MA${maPeriod1}`,
+                    type: 'line',
+                    data: this.calculateMA(maPeriod1, ohlcData),
+                    smooth: true,
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                    lineStyle: { opacity: 0.5, width: 2 },
+                    itemStyle: { color: ma1Color }
+                },
+                {
+                    name: `MA${maPeriod2}`,
+                    type: 'line',
+                    data: this.calculateMA(maPeriod2, ohlcData),
+                    smooth: true,
+                    xAxisIndex: 0,
+                    yAxisIndex: 0,
+                    lineStyle: { opacity: 0.5, width: 2 },
+                    itemStyle: { color: ma2Color }
+                },
+                {
+                    name: 'Volume',
+                    type: 'bar',
+                    data: volumeData.map((v, i) => ({
+                        value: v,
+                        itemStyle: { color: volumeColorData[i] }
+                    })),
+                    xAxisIndex: 1,
+                    yAxisIndex: 1
+                }
+            ]
+        };
+
+        chart.setOption(option, true);
+        return chart;
     }
 };
 
 // Export
 window.FinancialCharts = FinancialCharts;
+

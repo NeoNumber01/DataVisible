@@ -55,6 +55,7 @@ const ChartColorsConfig = {
             bubble: this.colorModes.SERIES,
             radar: this.colorModes.SERIES,
             mixed: this.colorModes.SERIES,
+            customCombo: this.colorModes.SERIES,
             horizontalBar: this.colorModes.SERIES,
             stacked: this.colorModes.SERIES,
             stepLine: this.colorModes.SERIES,
